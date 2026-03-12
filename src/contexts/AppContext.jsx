@@ -4,7 +4,18 @@ const AppContext = createContext();
 
 export const useAppContext = () => useContext(AppContext);
 
-// ── helper: load a key from localStorage (with JSON parse) ──
+// ── Version key: bump this whenever you want to wipe stale localStorage ──
+const STORAGE_VERSION = 'v2'
+const VERSION_KEY = 'baton_version'
+
+// ── Wipe old data if version mismatch, then stamp new version ──
+if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION) {
+  localStorage.removeItem('baton_matters')
+  localStorage.removeItem('baton_handoffs')
+  localStorage.removeItem('baton_currentUser')
+  localStorage.setItem(VERSION_KEY, STORAGE_VERSION)
+}
+
 function loadFromStorage(key, fallback) {
   try {
     const raw = localStorage.getItem(key)
@@ -16,7 +27,6 @@ function loadFromStorage(key, fallback) {
 
 export const AppProvider = ({ children }) => {
 
-  // ── State — seeded from localStorage (or empty arrays on first visit) ──
   const [currentUser, setCurrentUser] = useState(() =>
     loadFromStorage('baton_currentUser', null)
   )
@@ -25,21 +35,22 @@ export const AppProvider = ({ children }) => {
     loadFromStorage('baton_matters', [])
   )
 
-  const [users] = useState([
+  // Users are fixed (not persisted — they're the firm's staff)
+  const users = [
     { id: 'u1', name: 'Sarah Parker' },
     { id: 'u2', name: 'Michael Chang' },
     { id: 'u3', name: 'Emily Chen' },
     { id: 'u4', name: 'Alex Taylor' },
-  ])
+  ]
 
   const [handoffs, setHandoffs] = useState(() =>
     loadFromStorage('baton_handoffs', [])
   )
 
-  // ── Persist to localStorage on every state change ──
+  // ── Persist whenever state changes ──
   useEffect(() => {
     if (currentUser) localStorage.setItem('baton_currentUser', JSON.stringify(currentUser))
-    else               localStorage.removeItem('baton_currentUser')
+    else localStorage.removeItem('baton_currentUser')
   }, [currentUser])
 
   useEffect(() => {
@@ -52,7 +63,6 @@ export const AppProvider = ({ children }) => {
 
   // ── Auth ──
   const loginUser = (userOptions) => setCurrentUser(userOptions)
-
   const logoutUser = () => {
     setCurrentUser(null)
     localStorage.removeItem('baton_currentUser')
@@ -86,18 +96,42 @@ export const AppProvider = ({ children }) => {
 
   // ── Pass the Baton: transfer lead + log a handoff ──
   const passTheBaton = (matterId, toUserName, contextNote, priority = 'pending') => {
+    // Use functional updater to get latest matters state
+    setMatters(prev => {
+      const matter = prev.find(m => m.id === matterId)
+      if (!matter) return prev
+      return prev.map(m =>
+        m.id === matterId ? { ...m, lead: toUserName, updated: new Date().toISOString() } : m
+      )
+    })
+
+    // Build the handoff using latest matters snapshot
+    setMatters(prev => {
+      const matter = prev.find(m => m.id === matterId)
+      const fromName = matter?.lead || currentUser?.name || 'Unknown'
+      const matterName = matter?.name || 'Unknown Matter'
+
+      const newHandoff = {
+        id: Date.now(),
+        matter: matterName,
+        task: contextNote || `Case transferred to ${toUserName}`,
+        from: fromName,
+        to: toUserName,
+        status: priority,
+        date: 'Just now',
+      }
+
+      // Add the handoff separately (setHandoffs is independent)
+      // We return prev unchanged here; actual handoff is set below
+      return prev
+    })
+
+    // Add handoff record
     const matter = matters.find(m => m.id === matterId)
-    if (!matter) return
-
-    const fromName = matter.lead || currentUser?.name || 'Unknown'
-
-    setMatters(prev => prev.map(m =>
-      m.id === matterId ? { ...m, lead: toUserName, updated: new Date().toISOString() } : m
-    ))
-
+    const fromName = matter?.lead || currentUser?.name || 'Unknown'
     const newHandoff = {
       id: Date.now(),
-      matter: matter.name,
+      matter: matter?.name || 'Unknown Matter',
       task: contextNote || `Case transferred to ${toUserName}`,
       from: fromName,
       to: toUserName,
@@ -107,11 +141,10 @@ export const AppProvider = ({ children }) => {
     setHandoffs(prev => [newHandoff, ...prev])
   }
 
-  // ── Tasks (handoff items) ──
+  // ── Tasks / Handoffs ──
   const addTask = (newTask) => {
     const assignedUser = users.find(u => u.id === newTask.assignTo)?.name || 'Unassigned'
     const matterName = matters.find(m => m.id === newTask.matter)?.name || 'Unknown Matter'
-
     const taskFormat = {
       id: Date.now(),
       matter: matterName,

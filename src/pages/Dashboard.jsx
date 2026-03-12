@@ -16,13 +16,21 @@ const getStatusIcon = (status) => {
 }
 
 export default function Dashboard() {
-  const { matters, handoffs, currentUser } = useAppContext()
+  const { matters, handoffs, currentUser, users } = useAppContext()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const navigate = useNavigate()
 
   const pendingCount = handoffs.filter(h => h.status?.toLowerCase() === 'pending').length
   const completedCount = handoffs.filter(h => h.status?.toLowerCase() === 'completed').length
   const urgentCount = handoffs.filter(h => h.status?.toLowerCase() === 'urgent').length
+
+  // Dynamic workload per user
+  const workloadData = users.map(u => ({
+    name: u.name.split(' ')[0],
+    count: handoffs.filter(h => h.to === u.name).length,
+  }))
+  const maxCount = Math.max(...workloadData.map(w => w.count), 1)
+  const COLORS = ['bg-primary', 'bg-blue-500', 'bg-amber-500', 'bg-purple-500']
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -120,22 +128,26 @@ export default function Dashboard() {
             <CardTitle>Workload Distribution</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="w-full bg-muted rounded-full h-2.5">
-                <div className="bg-primary h-2.5 rounded-full" style={{ width: '45%' }}></div>
+            {handoffs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No batons passed yet.</p>
+            ) : (
+              <div className="space-y-3">
+                {workloadData.map((w, i) => (
+                  <div key={w.name}>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm text-muted-foreground">{w.name}</p>
+                      <p className="text-xs font-semibold text-slate-600">{w.count}</p>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className={`${COLORS[i % COLORS.length]} h-2 rounded-full transition-all duration-500`}
+                        style={{ width: `${Math.round((w.count / maxCount) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
-              <p className="text-sm text-muted-foreground">Sarah Parker (45%)</p>
-              
-              <div className="w-full bg-muted rounded-full h-2.5">
-                <div className="bg-blue-500 h-2.5 rounded-full" style={{ width: '30%' }}></div>
-              </div>
-              <p className="text-sm text-muted-foreground">Michael Chang (30%)</p>
-
-              <div className="w-full bg-muted rounded-full h-2.5">
-                <div className="bg-amber-500 h-2.5 rounded-full" style={{ width: '25%' }}></div>
-              </div>
-              <p className="text-sm text-muted-foreground">Alex Taylor (25%)</p>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>
