@@ -16,17 +16,21 @@ const getStatusIcon = (status) => {
 }
 
 export default function Dashboard() {
-  const { matters, handoffs } = useAppContext()
+  const { matters, handoffs, currentUser } = useAppContext()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const navigate = useNavigate()
+
+  const pendingCount = handoffs.filter(h => h.status?.toLowerCase() === 'pending').length
+  const completedCount = handoffs.filter(h => h.status?.toLowerCase() === 'completed').length
+  const urgentCount = handoffs.filter(h => h.status?.toLowerCase() === 'urgent').length
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
           <p className="text-muted-foreground mt-1">
-            Welcome back, Sarah. Here's an overview of your active matters and task handoffs.
+            {currentUser ? `Welcome back, ${currentUser.name.split(' ')[0]}.` : 'Welcome.'} Here's an overview of your active matters and task handoffs.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -53,9 +57,7 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Pending Handoffs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {handoffs.filter(h => h.status.toLowerCase() === 'pending').length}
-            </div>
+            <div className="text-2xl font-bold text-blue-600">{pendingCount}</div>
             <p className="text-xs text-muted-foreground">Require attention</p>
           </CardContent>
         </Card>
@@ -64,17 +66,17 @@ export default function Dashboard() {
             <CardTitle className="text-sm font-medium">Completed Tasks</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">34</div>
-            <p className="text-xs text-muted-foreground">This week</p>
+            <div className="text-2xl font-bold text-green-600">{completedCount}</div>
+            <p className="text-xs text-muted-foreground">Resolved batons</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Bottlenecks</CardTitle>
+            <CardTitle className="text-sm font-medium">Urgent Items</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">1</div>
-            <p className="text-xs text-muted-foreground">Review queue is overloaded</p>
+            <div className="text-2xl font-bold text-red-600">{urgentCount}</div>
+            <p className="text-xs text-muted-foreground">Need immediate action</p>
           </CardContent>
         </Card>
       </div>

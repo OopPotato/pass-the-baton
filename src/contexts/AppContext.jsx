@@ -1,105 +1,100 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AppContext = createContext();
 
-export const useAppContext = () => {
-  return useContext(AppContext);
-};
+export const useAppContext = () => useContext(AppContext);
+
+// ── helper: load a key from localStorage (with JSON parse) ──
+function loadFromStorage(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? JSON.parse(raw) : fallback
+  } catch {
+    return fallback
+  }
+}
 
 export const AppProvider = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState({ id: 'u1', name: "Sarah Parker", role: "Partner" });
-  
-  const [matters, setMatters] = useState([
-    { id: '1', name: "Smith v. Jones", status: "Discovery", lead: "Sarah Parker", updated: new Date(Date.now() - 1000 * 60 * 30).toISOString(), type: "Civil Litigation" },
-    { id: '2', name: "State Corp Merger", status: "Negotiation", lead: "Michael Chang", updated: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), type: "Corporate" },
-    { id: '3', name: "Estate of R. Vance", status: "Pre-Trial", lead: "Emily Chen", updated: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), type: "Estate Planning" },
-    { id: '4', name: "Apex Tech Patent", status: "Discovery", lead: "Alex Taylor", updated: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), type: "Intellectual Property" },
-    { id: '5', name: "Doe Employment Claim", status: "Settled", lead: "Sarah Parker", updated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(), type: "Labor & Employment" },
-    { id: '6', name: "Vanguard Asset Setup", status: "Active", lead: "Michael Chang", updated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(), type: "Corporate" },
-    { id: '7', name: "Global Reach Licensing", status: "Negotiation", lead: "Alex Taylor", updated: new Date(Date.now() - 1000 * 60 * 45).toISOString(), type: "Intellectual Property" },
-    { id: '8', name: "Omega Build Contract", status: "Review", lead: "Emily Chen", updated: new Date(Date.now() - 1000 * 60 * 15).toISOString(), type: "Real Estate" },
-    { id: '9', name: "Riverside Zoning", status: "Pre-Trial", lead: "Sarah Parker", updated: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(), type: "Real Estate" },
-    { id: '10', name: "City v. Transit Auth", status: "Discovery", lead: "Michael Chang", updated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString(), type: "Civil Litigation" },
-    { id: '11', name: "Pioneer Fund Raise", status: "Active", lead: "Emily Chen", updated: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(), type: "Corporate" },
-    { id: '12', name: "Beacon Software IP", status: "Discovery", lead: "Alex Taylor", updated: new Date(Date.now() - 1000 * 60 * 60 * 36).toISOString(), type: "Intellectual Property" },
-    { id: '13', name: "Kensington Will", status: "Completed", lead: "Sarah Parker", updated: new Date(Date.now() - 1000 * 60 * 60 * 24 * 14).toISOString(), type: "Estate Planning" },
-    { id: '14', name: "Delta HR Audit", status: "Review", lead: "Michael Chang", updated: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(), type: "Labor & Employment" },
-    { id: '15', name: "Sunrise Lease", status: "Negotiation", lead: "Emily Chen", updated: new Date(Date.now() - 1000 * 60 * 60 * 1).toISOString(), type: "Real Estate" },
-  ]);
 
-  const [users, setUsers] = useState([
-    { id: 'u1', name: "Sarah Parker" },
-    { id: 'u2', name: "Michael Chang" },
-    { id: 'u3', name: "Emily Chen" },
-    { id: 'u4', name: "Alex Taylor" },
-  ]);
+  // ── State — seeded from localStorage (or empty arrays on first visit) ──
+  const [currentUser, setCurrentUser] = useState(() =>
+    loadFromStorage('baton_currentUser', null)
+  )
 
-  const [handoffs, setHandoffs] = useState([
-    { id: 1, matter: "Smith v. Jones", task: "Review Deposition Draft", from: "Sarah Parker", to: "Michael Chang", status: "pending", date: "2h ago" },
-    { id: 2, matter: "State Corp Merger", task: "Finalize Due Diligence", from: "James Wilson", to: "Sarah Parker", status: "completed", date: "5h ago" },
-    { id: 3, matter: "Estate of R. Vance", task: "Draft Initial Response", from: "Emily Chen", to: "Alex Taylor", status: "urgent", date: "1d ago" },
-  ]);
+  const [matters, setMatters] = useState(() =>
+    loadFromStorage('baton_matters', [])
+  )
 
-  const addTask = (newTask) => {
-    // Generate simple mock data for from/to based on selected user ID
-    const assignedUser = users.find(u => u.id === newTask.assignTo)?.name || "Unassigned"
-    const matterName = matters.find(m => m.id === newTask.matter)?.name || "Unknown Matter"
+  const [users] = useState([
+    { id: 'u1', name: 'Sarah Parker' },
+    { id: 'u2', name: 'Michael Chang' },
+    { id: 'u3', name: 'Emily Chen' },
+    { id: 'u4', name: 'Alex Taylor' },
+  ])
 
-    const taskFormat = {
-      id: Date.now(),
-      matter: matterName,
-      task: newTask.title,
-      from: "Current User", // Mocked current user
-      to: assignedUser,
-      status: newTask.status.toLowerCase() || 'pending',
-      date: "Just now"
-    }
+  const [handoffs, setHandoffs] = useState(() =>
+    loadFromStorage('baton_handoffs', [])
+  )
 
-    setHandoffs([taskFormat, ...handoffs]);
+  // ── Persist to localStorage on every state change ──
+  useEffect(() => {
+    if (currentUser) localStorage.setItem('baton_currentUser', JSON.stringify(currentUser))
+    else               localStorage.removeItem('baton_currentUser')
+  }, [currentUser])
+
+  useEffect(() => {
+    localStorage.setItem('baton_matters', JSON.stringify(matters))
+  }, [matters])
+
+  useEffect(() => {
+    localStorage.setItem('baton_handoffs', JSON.stringify(handoffs))
+  }, [handoffs])
+
+  // ── Auth ──
+  const loginUser = (userOptions) => setCurrentUser(userOptions)
+
+  const logoutUser = () => {
+    setCurrentUser(null)
+    localStorage.removeItem('baton_currentUser')
   }
 
+  // ── Matters CRUD ──
   const addMatter = (matterData) => {
     const newMatter = {
       id: Date.now().toString(),
       updated: new Date().toISOString(),
-      ...matterData
+      ...matterData,
     }
-    setMatters([newMatter, ...matters])
+    setMatters(prev => [newMatter, ...prev])
   }
 
   const updateMatter = (id, updatedData) => {
-    setMatters(matters.map(m => m.id === id ? { ...m, ...updatedData, updated: new Date().toISOString() } : m))
+    setMatters(prev => prev.map(m =>
+      m.id === id ? { ...m, ...updatedData, updated: new Date().toISOString() } : m
+    ))
   }
 
   const archiveMatter = (id) => {
-    // In a real app we might set an 'archived' boolean. Here we just remove it for visual testing.
-    setMatters(matters.filter(m => m.id !== id))
+    setMatters(prev => prev.filter(m => m.id !== id))
   }
 
-  const loginUser = (userOptions) => {
-    setCurrentUser(userOptions)
-  }
-
-  // Assign a lead attorney to a matter
   const assignMatter = (matterId, attorneyName) => {
-    setMatters(matters.map(m =>
+    setMatters(prev => prev.map(m =>
       m.id === matterId ? { ...m, lead: attorneyName, updated: new Date().toISOString() } : m
     ))
   }
 
-  // Pass the baton: transfer the matter lead + create a handoff record
-  const passTheBaton = (matterId, toUserName, contextNote, priority = "pending") => {
+  // ── Pass the Baton: transfer lead + log a handoff ──
+  const passTheBaton = (matterId, toUserName, contextNote, priority = 'pending') => {
     const matter = matters.find(m => m.id === matterId)
     if (!matter) return
 
-    const fromName = matter.lead || currentUser?.name || "Unknown"
+    const fromName = matter.lead || currentUser?.name || 'Unknown'
 
-    // Update the matter's lead attorney
     setMatters(prev => prev.map(m =>
       m.id === matterId ? { ...m, lead: toUserName, updated: new Date().toISOString() } : m
     ))
 
-    // Create a new handoff record that appears in the dashboard
     const newHandoff = {
       id: Date.now(),
       matter: matter.name,
@@ -107,14 +102,36 @@ export const AppProvider = ({ children }) => {
       from: fromName,
       to: toUserName,
       status: priority,
-      date: "Just now",
+      date: 'Just now',
     }
     setHandoffs(prev => [newHandoff, ...prev])
   }
 
+  // ── Tasks (handoff items) ──
+  const addTask = (newTask) => {
+    const assignedUser = users.find(u => u.id === newTask.assignTo)?.name || 'Unassigned'
+    const matterName = matters.find(m => m.id === newTask.matter)?.name || 'Unknown Matter'
+
+    const taskFormat = {
+      id: Date.now(),
+      matter: matterName,
+      task: newTask.title,
+      from: currentUser?.name || 'Unknown',
+      to: assignedUser,
+      status: newTask.status?.toLowerCase() || 'pending',
+      date: 'Just now',
+    }
+    setHandoffs(prev => [taskFormat, ...prev])
+  }
+
   return (
-    <AppContext.Provider value={{ matters, users, handoffs, currentUser, loginUser, addTask, addMatter, updateMatter, archiveMatter, assignMatter, passTheBaton }}>
+    <AppContext.Provider value={{
+      matters, users, handoffs, currentUser,
+      loginUser, logoutUser,
+      addTask, addMatter, updateMatter, archiveMatter,
+      assignMatter, passTheBaton,
+    }}>
       {children}
     </AppContext.Provider>
-  );
-};
+  )
+}
