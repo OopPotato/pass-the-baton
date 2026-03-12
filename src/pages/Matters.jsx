@@ -25,6 +25,7 @@ import {
 } from "../components/ui/dropdown-menu"
 import NewMatterModal from "../components/NewMatterModal"
 import PassTheBatonModal from "../components/PassTheBatonModal"
+import ViewCaseModal from "../components/ViewCaseModal"
 
 const getStatusBadge = (status) => {
   switch (status?.toLowerCase()) {
@@ -50,7 +51,8 @@ export default function Matters() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingMatter, setEditingMatter] = useState(null)
-  const [batonMatter, setBatonMatter] = useState(null) // matter selected for Pass the Baton
+  const [batonMatter, setBatonMatter] = useState(null)
+  const [viewMatter, setViewMatter] = useState(null) // matter selected for View Details
   const itemsPerPage = 8
 
   // Extract unique statuses and attorneys for filter dropdowns
@@ -219,7 +221,7 @@ export default function Matters() {
                             Copy Case ID
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
-                          <DropdownMenuItem className="cursor-pointer">View Details</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setViewMatter(matter)} className="cursor-pointer">View Details</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => { setEditingMatter(matter); setIsModalOpen(true); }} className="cursor-pointer">
                             Edit Case
                           </DropdownMenuItem>
@@ -288,6 +290,13 @@ export default function Matters() {
         open={!!batonMatter}
         onOpenChange={(open) => { if (!open) setBatonMatter(null) }}
         matter={batonMatter}
+      />
+      <ViewCaseModal
+        open={!!viewMatter}
+        onOpenChange={(open) => { if (!open) setViewMatter(null) }}
+        matter={viewMatter}
+        onEdit={(m) => { setEditingMatter(m); setIsModalOpen(true) }}
+        onPassBaton={(m) => setBatonMatter(m)}
       />
     </div>
   )
