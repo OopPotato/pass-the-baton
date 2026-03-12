@@ -2,9 +2,9 @@ import React, { useState } from "react"
 import { useAppContext } from "../contexts/AppContext"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { Calendar, Briefcase, ChevronLeft, ChevronRight, Layers, Plus, Pencil, ArrowRight } from "lucide-react"
-import { cn } from "../lib/utils"
+import { Briefcase, Layers, Pencil, ArrowRight, Calendar, ChevronDown } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
+import { cn } from "../lib/utils"
 import PassTheBatonModal from "../components/PassTheBatonModal"
 import NewMatterModal from "../components/NewMatterModal"
 
@@ -20,15 +20,22 @@ const getStatusVariant = (status) => {
   }
 }
 
-// ── File-cabinet stack: all cards overlap in the same grid cell ──
+// Tab colors from front (dark) to back (light) — like real file folders
+const TAB_COLORS = [
+  "bg-slate-700 hover:bg-slate-600 text-white",
+  "bg-slate-500 hover:bg-slate-400 text-white",
+  "bg-slate-400 hover:bg-slate-300 text-white",
+  "bg-slate-300 hover:bg-slate-200 text-slate-700",
+  "bg-slate-200 hover:bg-slate-100 text-slate-600",
+]
+
+// ── File-drawer accordion: tabs stack up, active one expands content ──
 function MatterStack({ matters, onEdit, onPassBaton }) {
-  const [frontIdx, setFrontIdx] = useState(0)
-
-  // Latest updated = front (index 0 after sort)
+  // Sort latest updated = front (index 0)
   const sorted = [...matters].sort((a, b) => new Date(b.updated) - new Date(a.updated))
-  const total = sorted.length
+  const [activeIdx, setActiveIdx] = useState(0)
 
-  if (total === 0) {
+  if (sorted.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-slate-200 rounded-xl text-center bg-slate-50/50">
         <Briefcase className="h-5 w-5 text-slate-300 mb-2" />
@@ -37,116 +44,106 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
     )
   }
 
-  // Reorder so the chosen front is first in the display list
-  const reordered = [
-    sorted[frontIdx],
-    ...sorted.filter((_, i) => i !== frontIdx),
-  ]
-
-  // Clicking the front card sends it to the back (cycles)
-  const cycleToBack = () => {
-    const nextFront = sorted[(frontIdx + 1) % total]
-    setFrontIdx(sorted.indexOf(nextFront))
-  }
-
-  // Max 3 cards visible in the stack
-  const STACK_DEPTH = Math.min(total, 3)
-  const PEEK_PX = 10 // px each background card peeks out
-
   return (
-    <div>
-      {/* CSS grid overlay: all cards share the same grid cell */}
-      <div
-        className="relative"
-        style={{ paddingBottom: (STACK_DEPTH - 1) * PEEK_PX }}
-      >
-        {/* Back cards — rendered first (bottom of stack) */}
-        {reordered.slice(1, STACK_DEPTH).reverse().map((m, revIdx) => {
-          const depth = STACK_DEPTH - 1 - revIdx // 1 = closest behind front
-          return (
-            <div
-              key={m.id}
-              className="absolute inset-x-0 top-0 bg-white border border-slate-200 rounded-xl"
-              style={{
-                transform: `translateY(${depth * PEEK_PX}px) scaleX(${1 - depth * 0.025})`,
-                zIndex: 10 - depth,
-                // Show just the top strip
-                height: '100%',
-                opacity: 1 - depth * 0.15,
-              }}
-            >
-              {/* Peek strip: just the header of the behind-card */}
-              <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
-                <p className="text-xs font-semibold text-slate-500 truncate">{m.name}</p>
-                <Badge variant={getStatusVariant(m.status)} className="text-[9px] shrink-0">{m.status}</Badge>
-              </div>
-            </div>
-          )
-        })}
+    <div className="flex flex-col rounded-xl overflow-hidden border border-slate-200 shadow-md">
+      {sorted.map((m, i) => {
+        const isActive = i === activeIdx
+        const tabColor = TAB_COLORS[Math.min(i, TAB_COLORS.length - 1)]
 
-        {/* Front card — on top, always fully visible */}
-        <div
-          className="relative bg-white border border-slate-200 shadow-lg rounded-xl p-4 flex flex-col gap-3 group animate-slide-in"
-          style={{ zIndex: 20 }}
-        >
-          {/* Cycle hint (only when multiple cards) */}
-          {total > 1 && (
+        return (
+          <div key={m.id} className="flex flex-col">
+
+            {/* ── Tab / File header ── */}
             <button
-              onClick={cycleToBack}
-              className="absolute top-2.5 right-2.5 h-5 px-2 rounded-full bg-slate-100 hover:bg-slate-200 text-[10px] font-semibold text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1"
-              title="Cycle to next case"
+              onClick={() => setActiveIdx(i)}
+              className={cn(
+                "w-full flex items-center justify-between px-4 py-3 gap-3 text-left",
+                "transition-all duration-200",
+                // Physical "lift" on hover — translate up and add a subtle shadow
+                "hover:-translate-y-0.5 hover:shadow-md",
+                "focus:outline-none",
+                tabColor,
+                isActive && "border-b-2 border-white/20"
+              )}
             >
-              {frontIdx + 1}/{total} ↓
+              <div className="flex items-center gap-2 min-w-0">
+                {/* Small file icon */}
+                <svg className="h-3.5 w-3.5 shrink-0 opacity-70" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4z" />
+                </svg>
+                <span className="font-semibold text-sm truncate">{m.name}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Badge
+                  variant={getStatusVariant(m.status)}
+                  className="text-[9px] px-1.5 py-0 h-4"
+                >
+                  {m.status || "Active"}
+                </Badge>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 opacity-60 transition-transform duration-200",
+                    isActive ? "rotate-180" : "rotate-0"
+                  )}
+                />
+              </div>
             </button>
-          )}
 
-          {/* Case name + status */}
-          <div className="flex items-start justify-between gap-2 pr-10">
-            <div className="min-w-0">
-              <p className="font-semibold text-sm text-slate-900 leading-snug line-clamp-2">{reordered[0].name}</p>
-              {reordered[0].type && <p className="text-xs text-slate-400 mt-0.5 truncate">{reordered[0].type}</p>}
-            </div>
-            <Badge variant={getStatusVariant(reordered[0].status)} className="shrink-0 text-[10px]">
-              {reordered[0].status || 'Active'}
-            </Badge>
+            {/* ── Expanded content — only for active file ── */}
+            {isActive && (
+              <div className="bg-white px-4 py-4 flex flex-col gap-3 border-t border-slate-100 animate-slide-in">
+
+                {/* Practice area */}
+                {m.type && (
+                  <p className="text-xs text-slate-500 font-medium">{m.type}</p>
+                )}
+
+                {/* Client */}
+                {m.client && (
+                  <p className="text-xs text-slate-600">
+                    <span className="font-semibold">Client:</span> {m.client}
+                  </p>
+                )}
+
+                {/* Priority */}
+                {m.priority && m.priority !== "Medium" && (
+                  <p className="text-xs text-slate-600">
+                    <span className="font-semibold">Priority:</span> {m.priority}
+                  </p>
+                )}
+
+                {/* Last updated */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                  <Calendar className="h-3 w-3" />
+                  <span>
+                    {m.updated
+                      ? formatDistanceToNow(new Date(m.updated), { addSuffix: true })
+                      : "—"}
+                  </span>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-50">
+                  <Button
+                    size="sm" variant="outline"
+                    className="flex-1 h-7 text-xs gap-1.5"
+                    onClick={(e) => { e.stopPropagation(); onEdit(m) }}
+                  >
+                    <Pencil className="h-3 w-3" /> Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="flex-1 h-7 text-xs gap-1.5"
+                    onClick={(e) => { e.stopPropagation(); onPassBaton(m) }}
+                  >
+                    <ArrowRight className="h-3 w-3" /> Pass Baton
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Client */}
-          {reordered[0].client && (
-            <p className="text-xs text-slate-500 truncate">
-              <span className="font-medium text-slate-600">Client:</span> {reordered[0].client}
-            </p>
-          )}
-
-          {/* Last updated */}
-          <div className="flex items-center gap-1.5 text-xs text-slate-400">
-            <Calendar className="h-3 w-3" />
-            <span>
-              {reordered[0].updated
-                ? formatDistanceToNow(new Date(reordered[0].updated), { addSuffix: true })
-                : '—'}
-            </span>
-          </div>
-
-          {/* Actions — hidden until hover */}
-          <div className="flex items-center gap-2 border-t border-slate-50 pt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <Button
-              size="sm" variant="outline"
-              className="flex-1 h-7 text-xs gap-1.5"
-              onClick={(e) => { e.stopPropagation(); onEdit(reordered[0]) }}
-            >
-              <Pencil className="h-3 w-3" /> Edit
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1 h-7 text-xs gap-1.5"
-              onClick={(e) => { e.stopPropagation(); onPassBaton(reordered[0]) }}
-            >
-              <ArrowRight className="h-3 w-3" /> Pass Baton
-            </Button>
-          </div>
-        </div>
-      </div>
+        )
+      })}
     </div>
   )
 }
@@ -161,8 +158,7 @@ export default function Workload() {
   const handleEdit = (m) => { setEditMatter(m); setIsEditOpen(true) }
   const handlePassBaton = (m) => setBatonMatter(m)
 
-  // Group all matters by lead attorney
-  // "Unassigned" catches anything without a lead or with lead === "Unassigned"
+  // Group matters by lead attorney
   const columns = [
     {
       id: "unassigned",
@@ -178,7 +174,6 @@ export default function Workload() {
     })),
   ]
 
-  // Hide Unassigned column if empty to keep it clean
   const visibleColumns = columns.filter((col, i) => i === 0 ? col.matters.length > 0 : true)
 
   return (
@@ -189,10 +184,10 @@ export default function Workload() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">Workload by Owner</h1>
           <p className="text-muted-foreground mt-1">
-            All active cases grouped by lead attorney. Click a card to edit or pass the baton.
+            All cases grouped by lead attorney. Click a file tab to expand or interact.
           </p>
         </div>
-        <div className="flex items-center gap-3 text-sm flex-wrap">
+        <div className="flex items-center gap-3 text-sm">
           <div className="px-3 py-1.5 rounded-full bg-slate-100 font-medium text-slate-700">
             {matters.length} total case{matters.length !== 1 ? "s" : ""}
           </div>
@@ -217,7 +212,7 @@ export default function Workload() {
 
       {/* 4-column grid */}
       {matters.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 items-start">
           {visibleColumns.map(col => (
             <div key={col.id} className="flex flex-col gap-3 min-w-0">
 
@@ -237,7 +232,7 @@ export default function Workload() {
                 )}
               </div>
 
-              {/* Stacked cards */}
+              {/* File stack */}
               <MatterStack
                 matters={col.matters}
                 onEdit={handleEdit}
@@ -260,7 +255,6 @@ export default function Workload() {
         onOpenChange={(open) => { if (!open) { setIsEditOpen(false); setEditMatter(null) } }}
         initialData={editMatter}
       />
-
     </div>
   )
 }
