@@ -1,8 +1,10 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { formatDistanceToNow } from "date-fns"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
 import { Button } from "../components/ui/button"
-import { Plus, ArrowRight, Circle, CheckCircle2, AlertCircle } from "lucide-react"
+import { Badge } from "../components/ui/badge"
+import { Plus, ArrowRight, Circle, CheckCircle2, AlertCircle, Clock, Briefcase, User2 } from "lucide-react"
 import { useAppContext } from "../contexts/AppContext"
 import NewMatterModal from "../components/NewMatterModal"
 
@@ -151,6 +153,98 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Live Cases Tracker ── */}
+      <Card className="border-slate-200 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <div>
+            <CardTitle className="text-base">Live Cases Tracker</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              All created cases and their current status in real time
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+            </span>
+            <span className="text-xs font-medium text-green-600">Live</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {matters.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center mb-3">
+                <Briefcase className="h-6 w-6 text-slate-400" />
+              </div>
+              <p className="text-sm font-medium text-slate-600">No cases yet</p>
+              <p className="text-xs text-slate-400 mt-1">Create your first case to start tracking it here.</p>
+              <Button size="sm" className="mt-4 gap-2" onClick={() => setIsModalOpen(true)}>
+                <Plus className="h-3.5 w-3.5" /> Create Case
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-100">
+                    <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Case</th>
+                    <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Status</th>
+                    <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Lead Attorney</th>
+                    <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2">Time Open</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {[...matters].sort((a, b) => new Date(b.updated) - new Date(a.updated)).map(matter => (
+                    <tr key={matter.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                            <Briefcase className="h-3.5 w-3.5 text-slate-500" />
+                          </div>
+                          <div>
+                            <p className="font-semibold text-slate-800 leading-tight">{matter.name}</p>
+                            {matter.type && <p className="text-xs text-slate-400">{matter.type}</p>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <Badge
+                          variant={
+                            matter.status === 'Settled' || matter.status === 'Completed' ? 'success'
+                            : matter.status === 'Discovery' || matter.status === 'Pre-Trial' ? 'info'
+                            : 'warning'
+                          }
+                        >
+                          {matter.status || 'Active'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-5 w-5 rounded-full bg-slate-800 text-white text-[9px] flex items-center justify-center font-bold shrink-0">
+                            {(matter.lead || 'U').charAt(0)}
+                          </div>
+                          <span className="text-slate-600 text-xs font-medium">{matter.lead || 'Unassigned'}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 text-right">
+                        <div className="flex items-center justify-end gap-1 text-xs text-slate-400">
+                          <Clock className="h-3 w-3" />
+                          <span>
+                            {matter.updated
+                              ? formatDistanceToNow(new Date(matter.updated), { addSuffix: false })
+                              : '—'}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <NewMatterModal open={isModalOpen} onOpenChange={setIsModalOpen} />
     </div>
