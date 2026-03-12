@@ -22,8 +22,13 @@ const navItems = [
 ]
 
 export default function Layout() {
+  const { currentUser } = useAppContext()
   const location = useLocation()
   const navigate = useNavigate()
+
+  const handleLogout = () => {
+    navigate("/login")
+  }
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
