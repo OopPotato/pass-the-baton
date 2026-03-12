@@ -20,10 +20,13 @@ const getStatusVariant = (status) => {
   }
 }
 
-// ── Stacked card carousel per column ──
+// ── File-cabinet stack: all cards overlap in the same grid cell ──
 function MatterStack({ matters, onEdit, onPassBaton }) {
-  const [activeIdx, setActiveIdx] = useState(0)
-  const total = matters.length
+  const [frontIdx, setFrontIdx] = useState(0)
+
+  // Latest updated = front (index 0 after sort)
+  const sorted = [...matters].sort((a, b) => new Date(b.updated) - new Date(a.updated))
+  const total = sorted.length
 
   if (total === 0) {
     return (
@@ -34,104 +37,115 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
     )
   }
 
-  const matter = matters[activeIdx]
-  const prev = () => setActiveIdx(i => (i - 1 + total) % total)
-  const next = () => setActiveIdx(i => (i + 1) % total)
+  // Reorder so the chosen front is first in the display list
+  const reordered = [
+    sorted[frontIdx],
+    ...sorted.filter((_, i) => i !== frontIdx),
+  ]
+
+  // Clicking the front card sends it to the back (cycles)
+  const cycleToBack = () => {
+    const nextFront = sorted[(frontIdx + 1) % total]
+    setFrontIdx(sorted.indexOf(nextFront))
+  }
+
+  // Max 3 cards visible in the stack
+  const STACK_DEPTH = Math.min(total, 3)
+  const PEEK_PX = 10 // px each background card peeks out
 
   return (
-    <div className="relative">
-      {/* Stack shadow layers */}
-      {total > 2 && (
-        <div className="absolute inset-x-5 bottom-0 h-full bg-slate-200 rounded-xl transform translate-y-3 scale-[0.92] -z-20" />
-      )}
-      {total > 1 && (
-        <div className="absolute inset-x-3 bottom-0 h-full bg-slate-100 border border-slate-200 rounded-xl transform translate-y-1.5 scale-[0.96] -z-10" />
-      )}
-
-      {/* Active card */}
-      <div key={activeIdx} className="group bg-white border border-slate-200 shadow-md rounded-xl p-4 flex flex-col gap-3 animate-slide-in">
-
-        {/* Case name + status */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="font-semibold text-sm text-slate-900 leading-snug line-clamp-2">{matter.name}</p>
-            {matter.type && <p className="text-xs text-slate-400 mt-0.5 truncate">{matter.type}</p>}
-          </div>
-          <Badge variant={getStatusVariant(matter.status)} className="shrink-0 text-[10px]">
-            {matter.status || "Active"}
-          </Badge>
-        </div>
-
-        {/* Client */}
-        {matter.client && (
-          <p className="text-xs text-slate-500 truncate">
-            <span className="font-medium text-slate-600">Client:</span> {matter.client}
-          </p>
-        )}
-
-        {/* Last updated */}
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Calendar className="h-3 w-3" />
-          <span>
-            {matter.updated
-              ? formatDistanceToNow(new Date(matter.updated), { addSuffix: true })
-              : "—"}
-          </span>
-        </div>
-
-        {/* Actions row — hidden until card is hovered */}
-        <div className="flex items-center gap-2 border-t border-slate-50 pt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1 h-7 text-xs gap-1.5"
-            onClick={() => onEdit(matter)}
-          >
-            <Pencil className="h-3 w-3" />
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            className="flex-1 h-7 text-xs gap-1.5"
-            onClick={() => onPassBaton(matter)}
-          >
-            <ArrowRight className="h-3 w-3" />
-            Pass Baton
-          </Button>
-        </div>
-
-        {/* Nav controls */}
-        {total > 1 && (
-          <div className="flex items-center justify-between">
-            <div className="flex gap-1">
-              {matters.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveIdx(i)}
-                  className={cn(
-                    "h-1.5 rounded-full transition-all duration-200",
-                    i === activeIdx ? "w-4 bg-slate-700" : "w-1.5 bg-slate-300 hover:bg-slate-400"
-                  )}
-                />
-              ))}
+    <div>
+      {/* CSS grid overlay: all cards share the same grid cell */}
+      <div
+        className="relative"
+        style={{ paddingBottom: (STACK_DEPTH - 1) * PEEK_PX }}
+      >
+        {/* Back cards — rendered first (bottom of stack) */}
+        {reordered.slice(1, STACK_DEPTH).reverse().map((m, revIdx) => {
+          const depth = STACK_DEPTH - 1 - revIdx // 1 = closest behind front
+          return (
+            <div
+              key={m.id}
+              className="absolute inset-x-0 top-0 bg-white border border-slate-200 rounded-xl"
+              style={{
+                transform: `translateY(${depth * PEEK_PX}px) scaleX(${1 - depth * 0.025})`,
+                zIndex: 10 - depth,
+                // Show just the top strip
+                height: '100%',
+                opacity: 1 - depth * 0.15,
+              }}
+            >
+              {/* Peek strip: just the header of the behind-card */}
+              <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-semibold text-slate-500 truncate">{m.name}</p>
+                <Badge variant={getStatusVariant(m.status)} className="text-[9px] shrink-0">{m.status}</Badge>
+              </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={prev}
-                className="h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-              >
-                <ChevronLeft className="h-3.5 w-3.5 text-slate-500" />
-              </button>
-              <span className="text-[10px] font-semibold text-slate-400 tabular-nums">{activeIdx + 1}/{total}</span>
-              <button
-                onClick={next}
-                className="h-6 w-6 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
-              >
-                <ChevronRight className="h-3.5 w-3.5 text-slate-500" />
-              </button>
+          )
+        })}
+
+        {/* Front card — on top, always fully visible */}
+        <div
+          className="relative bg-white border border-slate-200 shadow-lg rounded-xl p-4 flex flex-col gap-3 group animate-slide-in"
+          style={{ zIndex: 20 }}
+        >
+          {/* Cycle hint (only when multiple cards) */}
+          {total > 1 && (
+            <button
+              onClick={cycleToBack}
+              className="absolute top-2.5 right-2.5 h-5 px-2 rounded-full bg-slate-100 hover:bg-slate-200 text-[10px] font-semibold text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1"
+              title="Cycle to next case"
+            >
+              {frontIdx + 1}/{total} ↓
+            </button>
+          )}
+
+          {/* Case name + status */}
+          <div className="flex items-start justify-between gap-2 pr-10">
+            <div className="min-w-0">
+              <p className="font-semibold text-sm text-slate-900 leading-snug line-clamp-2">{reordered[0].name}</p>
+              {reordered[0].type && <p className="text-xs text-slate-400 mt-0.5 truncate">{reordered[0].type}</p>}
             </div>
+            <Badge variant={getStatusVariant(reordered[0].status)} className="shrink-0 text-[10px]">
+              {reordered[0].status || 'Active'}
+            </Badge>
           </div>
-        )}
+
+          {/* Client */}
+          {reordered[0].client && (
+            <p className="text-xs text-slate-500 truncate">
+              <span className="font-medium text-slate-600">Client:</span> {reordered[0].client}
+            </p>
+          )}
+
+          {/* Last updated */}
+          <div className="flex items-center gap-1.5 text-xs text-slate-400">
+            <Calendar className="h-3 w-3" />
+            <span>
+              {reordered[0].updated
+                ? formatDistanceToNow(new Date(reordered[0].updated), { addSuffix: true })
+                : '—'}
+            </span>
+          </div>
+
+          {/* Actions — hidden until hover */}
+          <div className="flex items-center gap-2 border-t border-slate-50 pt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <Button
+              size="sm" variant="outline"
+              className="flex-1 h-7 text-xs gap-1.5"
+              onClick={(e) => { e.stopPropagation(); onEdit(reordered[0]) }}
+            >
+              <Pencil className="h-3 w-3" /> Edit
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 h-7 text-xs gap-1.5"
+              onClick={(e) => { e.stopPropagation(); onPassBaton(reordered[0]) }}
+            >
+              <ArrowRight className="h-3 w-3" /> Pass Baton
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )
