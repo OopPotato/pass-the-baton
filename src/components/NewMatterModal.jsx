@@ -21,7 +21,7 @@ import {
 import { useAppContext } from "../contexts/AppContext"
 
 export default function NewMatterModal({ open, onOpenChange, initialData = null }) {
-  const { addMatter } = useAppContext()
+  const { addMatter, updateMatter, users } = useAppContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const {
@@ -37,6 +37,7 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
       client: "",
       practiceArea: initialData?.type || "Litigation",
       priority: "Medium",
+      leadAttorney: initialData?.lead || "",
       description: "",
     },
   })
@@ -50,6 +51,7 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
         client: "",
         practiceArea: initialData?.type || "Litigation",
         priority: "Medium",
+        leadAttorney: initialData?.lead || "",
         description: "",
       })
     }
@@ -57,20 +59,24 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
 
   const onSubmit = async (data) => {
     setIsSubmitting(true)
-    
-    // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 600))
     
-    addMatter({
+    const matterPayload = {
       name: data.title,
       type: data.practiceArea,
-      status: "Active", // Default status for new cases
-      lead: "Unassigned", // Can be assigned later
+      status: "Active",
+      lead: data.leadAttorney || "Unassigned",
       priority: data.priority,
       client: data.client,
       caseNumber: data.caseNumber,
       description: data.description,
-    })
+    }
+
+    if (initialData) {
+      updateMatter(initialData.id, matterPayload)
+    } else {
+      addMatter(matterPayload)
+    }
     
     setIsSubmitting(false)
     reset()
@@ -180,6 +186,28 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
                   )}
                 />
               </div>
+            </div>
+
+            {/* Lead Attorney */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-foreground">Assign Lead Attorney</label>
+              <Controller
+                control={control}
+                name="leadAttorney"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Unassigned" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Unassigned">Unassigned</SelectItem>
+                      {users.map(u => (
+                        <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </div>
 
             {/* Description */}

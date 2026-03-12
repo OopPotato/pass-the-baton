@@ -1,6 +1,6 @@
 import React from "react"
 import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom"
-import { LayoutDashboard, Briefcase, Users, Lightbulb, Settings, LogOut, Bell, User } from "lucide-react"
+import { LayoutDashboard, Briefcase, Users, FileText, Settings, LogOut, Bell, User } from "lucide-react"
 import { cn } from "../../lib/utils"
 import {
   DropdownMenu,
@@ -17,7 +17,7 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Matters", href: "/matters" },
   { icon: Users, label: "Workload", href: "/handoffs" },
-  { icon: Lightbulb, label: "Recommendations", href: "/reports" },
+  { icon: FileText, label: "Reports", href: "/reports" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]
 

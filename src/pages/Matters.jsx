@@ -24,6 +24,7 @@ import {
   DropdownMenuTrigger,
 } from "../components/ui/dropdown-menu"
 import NewMatterModal from "../components/NewMatterModal"
+import PassTheBatonModal from "../components/PassTheBatonModal"
 
 const getStatusBadge = (status) => {
   switch (status?.toLowerCase()) {
@@ -49,6 +50,7 @@ export default function Matters() {
   const [currentPage, setCurrentPage] = useState(1)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingMatter, setEditingMatter] = useState(null)
+  const [batonMatter, setBatonMatter] = useState(null) // matter selected for Pass the Baton
   const itemsPerPage = 8
 
   // Extract unique statuses and attorneys for filter dropdowns
@@ -222,6 +224,13 @@ export default function Matters() {
                             Edit Case
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => setBatonMatter(matter)}
+                            className="cursor-pointer font-semibold text-primary focus:text-primary focus:bg-primary/10"
+                          >
+                            🏃 Pass the Baton
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => archiveMatter(matter.id)}>
                             Archive Case
                           </DropdownMenuItem>
@@ -274,6 +283,11 @@ export default function Matters() {
         open={isModalOpen} 
         onOpenChange={setIsModalOpen} 
         initialData={editingMatter} 
+      />
+      <PassTheBatonModal
+        open={!!batonMatter}
+        onOpenChange={(open) => { if (!open) setBatonMatter(null) }}
+        matter={batonMatter}
       />
     </div>
   )

@@ -80,8 +80,40 @@ export const AppProvider = ({ children }) => {
     setCurrentUser(userOptions)
   }
 
+  // Assign a lead attorney to a matter
+  const assignMatter = (matterId, attorneyName) => {
+    setMatters(matters.map(m =>
+      m.id === matterId ? { ...m, lead: attorneyName, updated: new Date().toISOString() } : m
+    ))
+  }
+
+  // Pass the baton: transfer the matter lead + create a handoff record
+  const passTheBaton = (matterId, toUserName, contextNote, priority = "pending") => {
+    const matter = matters.find(m => m.id === matterId)
+    if (!matter) return
+
+    const fromName = matter.lead || currentUser?.name || "Unknown"
+
+    // Update the matter's lead attorney
+    setMatters(prev => prev.map(m =>
+      m.id === matterId ? { ...m, lead: toUserName, updated: new Date().toISOString() } : m
+    ))
+
+    // Create a new handoff record that appears in the dashboard
+    const newHandoff = {
+      id: Date.now(),
+      matter: matter.name,
+      task: contextNote || `Case transferred to ${toUserName}`,
+      from: fromName,
+      to: toUserName,
+      status: priority,
+      date: "Just now",
+    }
+    setHandoffs(prev => [newHandoff, ...prev])
+  }
+
   return (
-    <AppContext.Provider value={{ matters, users, handoffs, currentUser, loginUser, addTask, addMatter, updateMatter, archiveMatter }}>
+    <AppContext.Provider value={{ matters, users, handoffs, currentUser, loginUser, addTask, addMatter, updateMatter, archiveMatter, assignMatter, passTheBaton }}>
       {children}
     </AppContext.Provider>
   );
