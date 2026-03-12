@@ -49,7 +49,7 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
       )}
 
       {/* Active card */}
-      <div key={activeIdx} className="bg-white border border-slate-200 shadow-md rounded-xl p-4 flex flex-col gap-3 animate-slide-in">
+      <div key={activeIdx} className="group bg-white border border-slate-200 shadow-md rounded-xl p-4 flex flex-col gap-3 animate-slide-in">
 
         {/* Case name + status */}
         <div className="flex items-start justify-between gap-2">
@@ -79,8 +79,8 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
           </span>
         </div>
 
-        {/* Actions row */}
-        <div className="flex items-center gap-2 border-t border-slate-50 pt-3">
+        {/* Actions row — hidden until card is hovered */}
+        <div className="flex items-center gap-2 border-t border-slate-50 pt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
           <Button
             size="sm"
             variant="outline"
