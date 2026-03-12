@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react"
 import { formatDistanceToNow } from "date-fns"
-import { Search, Filter, Plus, MoreHorizontal, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Filter, Plus, MoreHorizontal, ChevronLeft, ChevronRight, Users } from "lucide-react"
 
 import { useAppContext } from "../contexts/AppContext"
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
