@@ -5,6 +5,7 @@ import Dashboard from "./pages/Dashboard"
 import Login from "./pages/Login"
 import Matters from "./pages/Matters"
 import Workload from "./pages/Workload"
+import Recommendations from "./pages/Recommendations"
 
 // Placeholder for missing pages to prevent routing errors
 const PlaceholderPage = ({ title }) => (
@@ -26,7 +27,7 @@ export default function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/matters" element={<Matters />} />
           <Route path="/handoffs" element={<Workload />} />
-          <Route path="/reports" element={<PlaceholderPage title="Reports" />} />
+          <Route path="/reports" element={<Recommendations />} />
           <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
         </Route>
       </Routes>
