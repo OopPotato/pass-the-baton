@@ -2,11 +2,12 @@ import React, { useState } from "react"
 import { useAppContext } from "../contexts/AppContext"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { Briefcase, Layers, Pencil, ArrowRight, Calendar, ChevronDown } from "lucide-react"
+import { Briefcase, Layers, Pencil, ArrowRight, Calendar, ChevronDown, Plus, Users } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "../lib/utils"
 import PassTheBatonModal from "../components/PassTheBatonModal"
 import NewMatterModal from "../components/NewMatterModal"
+import LawyerManagementModal from "../components/LawyerManagementModal"
 
 const getStatusVariant = (status) => {
   switch (status?.toLowerCase()) {
@@ -147,6 +148,8 @@ export default function Workload() {
   const [batonMatter, setBatonMatter] = useState(null)
   const [editMatter, setEditMatter] = useState(null)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLawyerModalOpen, setIsLawyerModalOpen] = useState(false)
 
   const handleEdit = (m) => { setEditMatter(m); setIsEditOpen(true) }
   const handlePassBaton = (m) => setBatonMatter(m)
@@ -173,22 +176,29 @@ export default function Workload() {
     <div className="p-8 max-w-7xl mx-auto space-y-8">
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Workload</h1>
-          <p className="text-muted-foreground mt-1">
-            All cases grouped by lead lawyer. Click a file tab to expand or interact.
-          </p>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <div className="px-3 py-1.5 rounded-full bg-slate-100 font-medium text-slate-700">
-            {matters.length} total case{matters.length !== 1 ? "s" : ""}
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 drop-shadow-sm">Workload</h1>
+            <p className="text-slate-500 mt-1 font-medium">Track case distribution across lawyers.</p>
           </div>
-          <div className="px-3 py-1.5 rounded-full bg-amber-50 font-medium text-amber-700">
-            {matters.filter(m => !m.lead || m.lead === "Unassigned").length} unassigned
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline"
+              onClick={() => setIsLawyerModalOpen(true)}
+              className="h-11 shadow-sm border-slate-200 text-slate-700 hover:bg-slate-50 gap-2 transition-all px-5"
+            >
+              <Users className="h-4 w-4 text-slate-500" />
+              <span className="font-semibold text-sm">Manage Lawyers</span>
+            </Button>
+            <Button 
+              onClick={() => setIsModalOpen(true)}
+              className="h-11 shadow-md hover:shadow-lg transition-all bg-slate-900 hover:bg-slate-800 gap-2 px-6"
+            >
+              <Plus className="h-5 w-5" />
+              <span className="font-semibold text-sm">New Matter</span>
+            </Button>
           </div>
         </div>
-      </div>
 
       {/* Priority legend */}
       <div className="flex items-center gap-4 text-xs text-slate-500">
@@ -258,6 +268,15 @@ export default function Workload() {
         open={isEditOpen}
         onOpenChange={(open) => { if (!open) { setIsEditOpen(false); setEditMatter(null) } }}
         initialData={editMatter}
+      />
+      <NewMatterModal 
+        open={isModalOpen} 
+        onOpenChange={setIsModalOpen}
+      />
+
+      <LawyerManagementModal
+        open={isLawyerModalOpen}
+        onOpenChange={setIsLawyerModalOpen}
       />
     </div>
   )

@@ -20,46 +20,9 @@ import {
 } from "./ui/select"
 import { useAppContext } from "../contexts/AppContext"
 
-// ── Inline lawyer management row ──
-function LawyerManagerRow({ lawyer, onEdit, onRemove }) {
-  const [editing, setEditing] = useState(false)
-  const [val, setVal] = useState(lawyer.name)
-
-  const commit = () => {
-    if (val.trim()) onEdit(lawyer.id, val.trim())
-    setEditing(false)
-  }
-
-  return (
-    <div className="flex items-center gap-2 py-1">
-      {editing ? (
-        <>
-          <Input
-            value={val}
-            onChange={e => setVal(e.target.value)}
-            className="h-7 text-xs flex-1"
-            onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false) }}
-            autoFocus
-          />
-          <button onClick={commit} className="text-green-600 hover:text-green-700 p-0.5"><Check className="h-3.5 w-3.5" /></button>
-          <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-slate-600 p-0.5"><X className="h-3.5 w-3.5" /></button>
-        </>
-      ) : (
-        <>
-          <span className="text-xs text-slate-700 flex-1 truncate">{lawyer.name}</span>
-          <button onClick={() => { setVal(lawyer.name); setEditing(true) }} className="text-slate-400 hover:text-slate-600 p-0.5"><Pencil className="h-3 w-3" /></button>
-          <button onClick={() => onRemove(lawyer.id)} className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="h-3 w-3" /></button>
-        </>
-      )}
-    </div>
-  )
-}
-
 export default function NewMatterModal({ open, onOpenChange, initialData = null }) {
-  const { addMatter, updateMatter, lawyers, addLawyer, editLawyer, removeLawyer } = useAppContext()
+  const { addMatter, updateMatter, lawyers } = useAppContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showLawyerManager, setShowLawyerManager] = useState(false)
-  const [newLawyerName, setNewLawyerName] = useState("")
 
   const {
     register,
@@ -89,8 +52,6 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
         leadLawyer: initialData?.lead || "",
         description: "",
       })
-      setShowLawyerManager(false)
-      setNewLawyerName("")
     }
   }, [open, initialData, reset])
 
@@ -124,13 +85,6 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
       reset()
     }
     onOpenChange(isOpen)
-  }
-
-  const handleAddLawyer = () => {
-    if (newLawyerName.trim()) {
-      addLawyer(newLawyerName.trim())
-      setNewLawyerName("")
-    }
   }
 
   return (
@@ -205,48 +159,7 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
 
             {/* Lead Lawyer */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-foreground">Assign Lead Lawyer</label>
-                <button
-                  type="button"
-                  onClick={() => setShowLawyerManager(v => !v)}
-                  className="text-xs text-primary hover:underline"
-                >
-                  {showLawyerManager ? "Hide" : "Manage Lawyers"}
-                </button>
-              </div>
-
-              {/* Lawyer Manager Panel */}
-              {showLawyerManager && (
-                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-1">
-                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Lawyer List</p>
-                  {lawyers.length === 0 && (
-                    <p className="text-xs text-slate-400 italic">No lawyers added yet.</p>
-                  )}
-                  {lawyers.map(lawyer => (
-                    <LawyerManagerRow
-                      key={lawyer.id}
-                      lawyer={lawyer}
-                      onEdit={editLawyer}
-                      onRemove={removeLawyer}
-                    />
-                  ))}
-                  {/* Add new lawyer */}
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-200 mt-2">
-                    <Input
-                      value={newLawyerName}
-                      onChange={e => setNewLawyerName(e.target.value)}
-                      placeholder="New lawyer name..."
-                      className="h-7 text-xs flex-1"
-                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddLawyer() } }}
-                    />
-                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={handleAddLawyer}>
-                      <Plus className="h-3 w-3" /> Add
-                    </Button>
-                  </div>
-                </div>
-              )}
-
+              <label className="text-sm font-semibold text-foreground">Assign Lead Lawyer</label>
               <Controller
                 control={control}
                 name="leadLawyer"
