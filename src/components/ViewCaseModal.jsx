@@ -8,7 +8,7 @@ import {
 } from "./ui/dialog"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
-import { Calendar, User, Briefcase, Hash, Building2, AlertCircle, FileText, Clock } from "lucide-react"
+import { User, Building2, AlertCircle, FileText, Clock } from "lucide-react"
 
 const getStatusVariant = (status) => {
   switch (status?.toLowerCase()) {
@@ -26,13 +26,8 @@ const getStatusVariant = (status) => {
 }
 
 const getPriorityColor = (priority) => {
-  switch (priority?.toLowerCase()) {
-    case "urgent": return "text-red-600 bg-red-50 border-red-200"
-    case "high": return "text-amber-600 bg-amber-50 border-amber-200"
-    case "medium": return "text-blue-600 bg-blue-50 border-blue-200"
-    case "low": return "text-slate-500 bg-slate-50 border-slate-200"
-    default: return "text-slate-500 bg-slate-50 border-slate-200"
-  }
+  if (priority === "URGENT") return "text-red-600 bg-red-50 border-red-200"
+  return "text-sky-700 bg-[#E0F2FE] border-sky-200"
 }
 
 function DetailRow({ icon: Icon, label, value, badge, badgeVariant }) {
@@ -85,8 +80,7 @@ export default function ViewCaseModal({ open, onOpenChange, matter, onPassBaton,
 
         {/* Case Details */}
         <div className="px-6 py-2 overflow-y-auto max-h-[400px]">
-          <DetailRow icon={Briefcase} label="Practice Area" value={matter.type || "—"} />
-          <DetailRow icon={User} label="Lead Attorney" value={matter.lead || "Unassigned"} />
+          <DetailRow icon={User} label="Lead Lawyer" value={matter.lead || "Unassigned"} />
           {matter.client && (
             <DetailRow icon={Building2} label="Client" value={matter.client} />
           )}

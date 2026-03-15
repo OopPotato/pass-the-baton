@@ -47,7 +47,7 @@ export default function Matters() {
   const { matters, users, archiveMatter } = useAppContext()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
-  const [attorneyFilter, setAttorneyFilter] = useState("all")
+  const [lawyerFilter, setLawyerFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingMatter, setEditingMatter] = useState(null)
@@ -57,7 +57,7 @@ export default function Matters() {
 
   // Extract unique statuses and attorneys for filter dropdowns
   const statuses = useMemo(() => ["all", ...new Set(matters.map(m => m.status))], [matters])
-  const attorneys = useMemo(() => ["all", ...new Set(matters.map(m => m.lead))], [matters])
+  const lawyers = useMemo(() => ["all", ...new Set(matters.map(m => m.lead))], [matters])
 
   // Filter matters based on search query AND dropdown filters
   const filteredMatters = useMemo(() => {
@@ -66,11 +66,11 @@ export default function Matters() {
                           matter.lead.toLowerCase().includes(searchQuery.toLowerCase())
       
       const matchesStatus = statusFilter === "all" || matter.status === statusFilter
-      const matchesAttorney = attorneyFilter === "all" || matter.lead === attorneyFilter
+      const matchesLawyer = lawyerFilter === "all" || matter.lead === lawyerFilter
       
-      return matchesSearch && matchesStatus && matchesAttorney
+      return matchesSearch && matchesStatus && matchesLawyer
     })
-  }, [matters, searchQuery, statusFilter, attorneyFilter])
+  }, [matters, searchQuery, statusFilter, lawyerFilter])
 
   // Pagination slicing
   const totalItems = filteredMatters.length
@@ -84,7 +84,7 @@ export default function Matters() {
   // Reset to first page when search or filters change
   React.useEffect(() => {
     setCurrentPage(1)
-  }, [searchQuery, statusFilter, attorneyFilter])
+  }, [searchQuery, statusFilter, lawyerFilter])
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -139,29 +139,29 @@ export default function Matters() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Attorney Filter */}
+            {/* Lawyer Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="gap-2 h-10 px-4">
                   <Users className="h-4 w-4" />
-                  Lead: {attorneyFilter === "all" ? "All" : attorneyFilter}
+                  Lead: {lawyerFilter === "all" ? "All" : lawyerFilter}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[180px]">
-                <DropdownMenuLabel>Filter by Attorney</DropdownMenuLabel>
+                <DropdownMenuLabel>Filter by Lawyer</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {attorneys.map(attorney => (
-                  <DropdownMenuItem key={attorney} onClick={() => setAttorneyFilter(attorney)}>
-                    {attorney}
+                {lawyers.map(lawyer => (
+                  <DropdownMenuItem key={lawyer} onClick={() => setLawyerFilter(lawyer)}>
+                    {lawyer}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {(statusFilter !== "all" || attorneyFilter !== "all" || searchQuery !== "") && (
+            {(statusFilter !== "all" || lawyerFilter !== "all" || searchQuery !== "") && (
               <Button 
                 variant="ghost" 
-                onClick={() => { setStatusFilter("all"); setAttorneyFilter("all"); setSearchQuery(""); }}
+                onClick={() => { setStatusFilter("all"); setLawyerFilter("all"); setSearchQuery(""); }}
                 className="text-muted-foreground hover:text-foreground text-xs h-10"
               >
                 Reset Filters
@@ -176,9 +176,8 @@ export default function Matters() {
             <TableHeader>
               <TableRow className="hover:bg-transparent border-slate-100">
                 <TableHead className="font-semibold text-slate-800">Case Name</TableHead>
-                <TableHead className="font-semibold text-slate-800">Type</TableHead>
                 <TableHead className="font-semibold text-slate-800">Status</TableHead>
-                <TableHead className="font-semibold text-slate-800">Lead Attorney</TableHead>
+                <TableHead className="font-semibold text-slate-800">Lead Lawyer</TableHead>
                 <TableHead className="font-semibold text-slate-800">Last Updated</TableHead>
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
@@ -197,7 +196,6 @@ export default function Matters() {
                 paginatedMatters.map((matter) => (
                   <TableRow key={matter.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
                     <TableCell className="font-medium text-slate-900">{matter.name}</TableCell>
-                    <TableCell className="text-slate-600">{matter.type}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadge(matter.status)} className="font-medium shadow-sm">
                         {matter.status}
@@ -234,7 +232,7 @@ export default function Matters() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => archiveMatter(matter.id)}>
-                            Archive Case
+                            Delete Case
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

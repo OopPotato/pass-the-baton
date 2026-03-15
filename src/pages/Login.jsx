@@ -1,96 +1,126 @@
 import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Button } from "../components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { useAppContext } from "../contexts/AppContext"
+import { Button } from "../components/ui/button"
+import { Input } from "../components/ui/input"
+import { Mail, CheckCircle2, AlertCircle, Loader2 } from "lucide-react"
 
 export default function Login() {
-  const navigate = useNavigate()
-  const { users, loginUser } = useAppContext()
-  const [selectedUser, setSelectedUser] = useState(users[0]?.id || "u1")
-  const [role, setRole] = useState("Partner")
-  
-  const handleLogin = (e) => {
+  const { sendMagicLink, authError } = useAppContext()
+  const [email, setEmail] = useState("")
+  const [status, setStatus] = useState("idle") // idle | sending | sent | error
+  const [errorMsg, setErrorMsg] = useState("")
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    const userObj = users.find(u => u.id === selectedUser)
-    if (userObj) {
-      loginUser({ ...userObj, role })
-      navigate("/")
+    if (!email.trim()) return
+    setStatus("sending")
+    setErrorMsg("")
+    try {
+      await sendMagicLink(email.trim())
+      setStatus("sent")
+    } catch (err) {
+      setStatus("error")
+      setErrorMsg(err.message || "Failed to send magic link. Please try again.")
     }
   }
 
   return (
-    <div className="flex h-screen w-full flex-col justify-center px-4 py-12 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden font-inter">
-      
+    <div className="flex h-screen w-full flex-col items-center justify-center px-4 bg-slate-50 relative overflow-hidden">
+
       {/* Decorative background blur */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[50%] rounded-full bg-blue-100/30 blur-3xl" />
         <div className="absolute top-[60%] -right-[10%] w-[40%] h-[60%] rounded-full bg-indigo-100/30 blur-3xl" />
       </div>
 
-      <div className="z-10 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center flex-col items-center">
-          <div className="h-14 w-14 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg border border-slate-700">
-            <span className="text-3xl font-bold tracking-tight text-white">B</span>
-          </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 tracking-tight">
-            Pass the Baton
-          </h2>
-          <p className="mt-2 text-center text-sm text-slate-500">
-            Select a mock user and role to preview the application views.
-          </p>
+      <div className="z-10 w-full max-w-[420px] flex flex-col items-center">
+
+        {/* Logo */}
+        <div className="h-14 w-14 rounded-xl bg-slate-900 flex items-center justify-center shadow-lg border border-slate-700 mb-6">
+          <span className="text-3xl font-bold tracking-tight text-white">B</span>
         </div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight text-center">Pass the Baton</h1>
+        <p className="mt-2 text-sm text-slate-500 text-center">
+          Enter your authorised email to receive a sign-in link.
+        </p>
 
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-[440px]">
-          <Card className="border-slate-200 shadow-xl shadow-slate-200/40 bg-white/80 backdrop-blur-sm">
-            <form onSubmit={handleLogin}>
-              <CardContent className="pt-6 space-y-6">
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-900 ml-0.5">
-                    Select User
-                  </label>
-                  <Select value={selectedUser} onValueChange={setSelectedUser}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Choose user..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map(u => (
-                        <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+        {/* Card */}
+        <div className="mt-8 w-full bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/40 p-8">
 
-                <div className="space-y-2">
-                  <label className="text-sm font-semibold text-slate-900 ml-0.5">
-                    Select Role
-                  </label>
-                  <Select value={role} onValueChange={setRole}>
-                    <SelectTrigger className="h-11">
-                      <SelectValue placeholder="Choose role..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Partner">Partner (Global Visibility)</SelectItem>
-                      <SelectItem value="Associate">Associate (Assigned Matters)</SelectItem>
-                      <SelectItem value="Paralegal">Paralegal (Task Focus)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-[11px] text-slate-500 mt-2 px-1 leading-relaxed">
-                    Note: For this mock preview, Partners see all firm data. Associates and Paralegals are filtered to their respective workloads in the upcoming database phase.
-                  </p>
+          {/* Access denied from whitelist check */}
+          {authError && (
+            <div className="mb-5 flex items-start gap-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3">
+              <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{authError}</p>
+            </div>
+          )}
+
+          {status === "sent" ? (
+            /* ── Sent state ── */
+            <div className="flex flex-col items-center text-center gap-4 py-4">
+              <div className="h-14 w-14 rounded-full bg-green-50 border border-green-200 flex items-center justify-center">
+                <CheckCircle2 className="h-7 w-7 text-green-500" />
+              </div>
+              <div>
+                <p className="font-semibold text-slate-800 text-base">Check your inbox</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  We sent a sign-in link to <span className="font-medium text-slate-700">{email}</span>.<br />
+                  Click the link to access the dashboard.
+                </p>
+              </div>
+              <button
+                onClick={() => { setStatus("idle"); setEmail("") }}
+                className="text-xs text-slate-400 hover:text-slate-600 underline underline-offset-2 mt-1"
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : (
+            /* ── Form state ── */
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-semibold text-slate-800">
+                  Email address
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@yourfirm.com"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    className="pl-9 h-11"
+                    autoComplete="email"
+                    required
+                    disabled={status === "sending"}
+                  />
                 </div>
-                
-              </CardContent>
-              <CardFooter className="pb-8 pt-2">
-                <Button type="submit" className="w-full text-base h-12 shadow-md hover:shadow-lg transition-all">
-                  Sign in to Dashboard
-                </Button>
-              </CardFooter>
+              </div>
+
+              {status === "error" && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2.5">
+                  <AlertCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
+                  <p className="text-xs text-red-700">{errorMsg}</p>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                className="w-full h-11 text-sm font-semibold shadow-md hover:shadow-lg transition-all"
+                disabled={status === "sending" || !email.trim()}
+              >
+                {status === "sending"
+                  ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Sending…</>
+                  : "Send Magic Link"}
+              </Button>
+
+              <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                Only authorised emails can access this application.<br />
+                Contact your administrator to request access.
+              </p>
             </form>
-          </Card>
+          )}
         </div>
       </div>
     </div>

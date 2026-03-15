@@ -1,6 +1,6 @@
 import React from "react"
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom"
-import { LayoutDashboard, Briefcase, Users, FileText, Settings, LogOut, Bell, User } from "lucide-react"
+import { Outlet, NavLink, useLocation } from "react-router-dom"
+import { LayoutDashboard, Briefcase, Users, Settings, LogOut, Bell, User } from "lucide-react"
 import { cn } from "../../lib/utils"
 import {
   DropdownMenu,
@@ -17,17 +17,15 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Matters", href: "/matters" },
   { icon: Users, label: "Workload", href: "/handoffs" },
-  { icon: FileText, label: "Reports", href: "/reports" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]
 
 export default function Layout() {
-  const { currentUser } = useAppContext()
+  const { authUser, logoutUser } = useAppContext()
   const location = useLocation()
-  const navigate = useNavigate()
 
-  const handleLogout = () => {
-    navigate("/login")
+  const handleLogout = async () => {
+    await logoutUser()
   }
 
   return (
@@ -106,10 +104,10 @@ export default function Layout() {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal opacity-90 text-xs text-muted-foreground">
-                  Logged in as {currentUser?.role || "User"}
+                  Signed in as
                 </DropdownMenuLabel>
-                <DropdownMenuLabel className="font-medium pt-0">
-                  {currentUser?.name || "Guest"}
+                <DropdownMenuLabel className="font-medium pt-0 truncate max-w-[200px]">
+                  {authUser?.email || "User"}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>

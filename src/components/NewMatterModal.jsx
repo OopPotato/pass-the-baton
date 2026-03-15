@@ -1,6 +1,6 @@
 import React, { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
-import { Loader2 } from "lucide-react"
+import { Loader2, Plus, Pencil, Trash2, Check, X } from "lucide-react"
 
 import {
   Dialog,
@@ -20,9 +20,46 @@ import {
 } from "./ui/select"
 import { useAppContext } from "../contexts/AppContext"
 
+// ── Inline lawyer management row ──
+function LawyerManagerRow({ lawyer, onEdit, onRemove }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState(lawyer.name)
+
+  const commit = () => {
+    if (val.trim()) onEdit(lawyer.id, val.trim())
+    setEditing(false)
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-1">
+      {editing ? (
+        <>
+          <Input
+            value={val}
+            onChange={e => setVal(e.target.value)}
+            className="h-7 text-xs flex-1"
+            onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false) }}
+            autoFocus
+          />
+          <button onClick={commit} className="text-green-600 hover:text-green-700 p-0.5"><Check className="h-3.5 w-3.5" /></button>
+          <button onClick={() => setEditing(false)} className="text-slate-400 hover:text-slate-600 p-0.5"><X className="h-3.5 w-3.5" /></button>
+        </>
+      ) : (
+        <>
+          <span className="text-xs text-slate-700 flex-1 truncate">{lawyer.name}</span>
+          <button onClick={() => { setVal(lawyer.name); setEditing(true) }} className="text-slate-400 hover:text-slate-600 p-0.5"><Pencil className="h-3 w-3" /></button>
+          <button onClick={() => onRemove(lawyer.id)} className="text-red-400 hover:text-red-600 p-0.5"><Trash2 className="h-3 w-3" /></button>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function NewMatterModal({ open, onOpenChange, initialData = null }) {
-  const { addMatter, updateMatter, users } = useAppContext()
+  const { addMatter, updateMatter, lawyers, addLawyer, editLawyer, removeLawyer } = useAppContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showLawyerManager, setShowLawyerManager] = useState(false)
+  const [newLawyerName, setNewLawyerName] = useState("")
 
   const {
     register,
@@ -35,9 +72,8 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
       title: initialData?.name || "",
       caseNumber: "",
       client: "",
-      practiceArea: initialData?.type || "Litigation",
-      priority: "Medium",
-      leadAttorney: initialData?.lead || "",
+      priority: "Normal",
+      leadLawyer: initialData?.lead || "",
       description: "",
     },
   })
@@ -49,11 +85,12 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
         title: initialData?.name || "",
         caseNumber: "",
         client: "",
-        practiceArea: initialData?.type || "Litigation",
-        priority: "Medium",
-        leadAttorney: initialData?.lead || "",
+        priority: "Normal",
+        leadLawyer: initialData?.lead || "",
         description: "",
       })
+      setShowLawyerManager(false)
+      setNewLawyerName("")
     }
   }, [open, initialData, reset])
 
@@ -63,9 +100,8 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
     
     const matterPayload = {
       name: data.title,
-      type: data.practiceArea,
       status: "Active",
-      lead: data.leadAttorney || "Unassigned",
+      lead: data.leadLawyer || "Unassigned",
       priority: data.priority,
       client: data.client,
       caseNumber: data.caseNumber,
@@ -83,12 +119,18 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
     onOpenChange(false)
   }
 
-  // Handle open state change (reset form if closed)
   const handleOpenChange = (isOpen) => {
     if (!isOpen) {
       reset()
     }
     onOpenChange(isOpen)
+  }
+
+  const handleAddLawyer = () => {
+    if (newLawyerName.trim()) {
+      addLawyer(newLawyerName.trim())
+      setNewLawyerName("")
+    }
   }
 
   return (
@@ -141,59 +183,73 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* Practice Area */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">Practice Area</label>
-                <Controller
-                  control={control}
-                  name="practiceArea"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select area" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Litigation">Litigation</SelectItem>
-                        <SelectItem value="Corporate">Corporate</SelectItem>
-                        <SelectItem value="Real Estate">Real Estate</SelectItem>
-                        <SelectItem value="Estate Planning">Estate Planning</SelectItem>
-                        <SelectItem value="Intellectual Property">Intellectual Property</SelectItem>
-                        <SelectItem value="Labor & Employment">Labor & Employment</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-              {/* Priority */}
-              <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">Priority</label>
-                <Controller
-                  control={control}
-                  name="priority"
-                  render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Priority" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Low">Low</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-              </div>
-            </div>
-
-            {/* Lead Attorney */}
+            {/* Priority */}
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">Assign Lead Attorney</label>
+              <label className="text-sm font-semibold text-foreground">Priority</label>
               <Controller
                 control={control}
-                name="leadAttorney"
+                name="priority"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Priority" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Normal">Normal</SelectItem>
+                      <SelectItem value="URGENT">URGENT</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </div>
+
+            {/* Lead Lawyer */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-foreground">Assign Lead Lawyer</label>
+                <button
+                  type="button"
+                  onClick={() => setShowLawyerManager(v => !v)}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {showLawyerManager ? "Hide" : "Manage Lawyers"}
+                </button>
+              </div>
+
+              {/* Lawyer Manager Panel */}
+              {showLawyerManager && (
+                <div className="border border-slate-200 rounded-lg p-3 bg-slate-50 space-y-1">
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide mb-2">Lawyer List</p>
+                  {lawyers.length === 0 && (
+                    <p className="text-xs text-slate-400 italic">No lawyers added yet.</p>
+                  )}
+                  {lawyers.map(lawyer => (
+                    <LawyerManagerRow
+                      key={lawyer.id}
+                      lawyer={lawyer}
+                      onEdit={editLawyer}
+                      onRemove={removeLawyer}
+                    />
+                  ))}
+                  {/* Add new lawyer */}
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-200 mt-2">
+                    <Input
+                      value={newLawyerName}
+                      onChange={e => setNewLawyerName(e.target.value)}
+                      placeholder="New lawyer name..."
+                      className="h-7 text-xs flex-1"
+                      onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); handleAddLawyer() } }}
+                    />
+                    <Button type="button" size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={handleAddLawyer}>
+                      <Plus className="h-3 w-3" /> Add
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <Controller
+                control={control}
+                name="leadLawyer"
                 render={({ field }) => (
                   <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                     <SelectTrigger>
@@ -201,8 +257,8 @@ export default function NewMatterModal({ open, onOpenChange, initialData = null 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Unassigned">Unassigned</SelectItem>
-                      {users.map(u => (
-                        <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>
+                      {lawyers.map(l => (
+                        <SelectItem key={l.id} value={l.name}>{l.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

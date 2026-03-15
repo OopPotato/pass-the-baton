@@ -18,7 +18,7 @@ import {
 import { ArrowRight, Loader2, UserCheck } from "lucide-react"
 
 export default function PassTheBatonModal({ open, onOpenChange, matter }) {
-  const { users, passTheBaton, currentUser } = useAppContext()
+  const { lawyers, passTheBaton, currentUser } = useAppContext()
   const [toUser, setToUser] = useState("")
   const [contextNote, setContextNote] = useState("")
   const [priority, setPriority] = useState("pending")
@@ -35,7 +35,7 @@ export default function PassTheBatonModal({ open, onOpenChange, matter }) {
 
   const fromName = matter?.lead || currentUser?.name || "Unknown"
   // exclude the current lead from the "to" list
-  const eligibleUsers = users.filter(u => u.name !== fromName)
+  const eligibleUsers = lawyers.filter(u => u.name !== fromName)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -64,7 +64,7 @@ export default function PassTheBatonModal({ open, onOpenChange, matter }) {
               <div>
                 <DialogTitle className="text-lg leading-tight">Pass the Baton</DialogTitle>
                 <DialogDescription className="text-xs mt-0.5 text-slate-500">
-                  Transfer this case to another attorney
+                  Transfer this case to another lawyer
                 </DialogDescription>
               </div>
             </div>
@@ -74,7 +74,6 @@ export default function PassTheBatonModal({ open, onOpenChange, matter }) {
               <div className="mt-3 px-3 py-2 rounded-lg bg-slate-100 border border-slate-200">
                 <p className="text-xs text-slate-500 font-medium uppercase tracking-wide mb-0.5">Case</p>
                 <p className="text-sm font-semibold text-slate-900 leading-snug">{matter.name}</p>
-                {matter.type && <p className="text-xs text-slate-500 mt-0.5">{matter.type}</p>}
               </div>
             )}
           </div>
@@ -97,7 +96,7 @@ export default function PassTheBatonModal({ open, onOpenChange, matter }) {
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">To *</p>
                 <Select value={toUser} onValueChange={setToUser}>
                   <SelectTrigger className="h-10">
-                    <SelectValue placeholder="Select attorney..." />
+                    <SelectValue placeholder="Select lawyer..." />
                   </SelectTrigger>
                   <SelectContent>
                     {eligibleUsers.map(u => (
@@ -144,7 +143,7 @@ export default function PassTheBatonModal({ open, onOpenChange, matter }) {
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 resize-none"
               />
               <p className="text-xs text-slate-400">
-                This note will appear in the Dashboard's "Recent Handoffs" for the receiving attorney.
+                This note will appear in the Dashboard's "Recent Handoffs" for the receiving lawyer.
               </p>
             </div>
 

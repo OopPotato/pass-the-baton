@@ -20,14 +20,14 @@ const getStatusVariant = (status) => {
   }
 }
 
-// Tab colors from front (dark) to back (light) — like real file folders
-const TAB_COLORS = [
-  "bg-slate-700 hover:bg-slate-600 text-white",
-  "bg-slate-500 hover:bg-slate-400 text-white",
-  "bg-slate-400 hover:bg-slate-300 text-white",
-  "bg-slate-300 hover:bg-slate-200 text-slate-700",
-  "bg-slate-200 hover:bg-slate-100 text-slate-600",
-]
+// Priority-based tab colors: URGENT = bright red, Normal = light blue (#E0F2FE tone)
+const getPriorityTabColor = (priority) => {
+  if (priority === "URGENT") {
+    return "bg-red-600 hover:bg-red-500 text-white"
+  }
+  // Normal (default)
+  return "bg-[#E0F2FE] hover:bg-[#BAE6FD] text-slate-700"
+}
 
 // ── File-drawer accordion: tabs stack up, active one expands content ──
 function MatterStack({ matters, onEdit, onPassBaton }) {
@@ -48,7 +48,7 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
     <div className="flex flex-col rounded-xl overflow-hidden border border-slate-200 shadow-md">
       {sorted.map((m, i) => {
         const isActive = i === activeIdx
-        const tabColor = TAB_COLORS[Math.min(i, TAB_COLORS.length - 1)]
+        const tabColor = getPriorityTabColor(m.priority)
 
         return (
           <div key={m.id} className="flex flex-col">
@@ -59,7 +59,6 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
               className={cn(
                 "w-full flex items-center justify-between px-4 py-3 gap-3 text-left",
                 "transition-all duration-200",
-                // Physical "lift" on hover — translate up and add a subtle shadow
                 "hover:-translate-y-0.5 hover:shadow-md",
                 "focus:outline-none",
                 tabColor,
@@ -74,6 +73,12 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
                 <span className="font-semibold text-sm truncate">{m.name}</span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
+                {/* Priority badge */}
+                {m.priority === "URGENT" && (
+                  <span className="text-[9px] font-bold px-1.5 py-0 h-4 rounded bg-white/20 text-white inline-flex items-center">
+                    URGENT
+                  </span>
+                )}
                 <Badge
                   variant={getStatusVariant(m.status)}
                   className="text-[9px] px-1.5 py-0 h-4"
@@ -93,22 +98,10 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
             {isActive && (
               <div className="bg-white px-4 py-4 flex flex-col gap-3 border-t border-slate-100 animate-slide-in">
 
-                {/* Practice area */}
-                {m.type && (
-                  <p className="text-xs text-slate-500 font-medium">{m.type}</p>
-                )}
-
                 {/* Client */}
                 {m.client && (
                   <p className="text-xs text-slate-600">
                     <span className="font-semibold">Client:</span> {m.client}
-                  </p>
-                )}
-
-                {/* Priority */}
-                {m.priority && m.priority !== "Medium" && (
-                  <p className="text-xs text-slate-600">
-                    <span className="font-semibold">Priority:</span> {m.priority}
                   </p>
                 )}
 
@@ -149,7 +142,7 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
 }
 
 export default function Workload() {
-  const { matters, users } = useAppContext()
+  const { matters, lawyers } = useAppContext()
 
   const [batonMatter, setBatonMatter] = useState(null)
   const [editMatter, setEditMatter] = useState(null)
@@ -158,7 +151,7 @@ export default function Workload() {
   const handleEdit = (m) => { setEditMatter(m); setIsEditOpen(true) }
   const handlePassBaton = (m) => setBatonMatter(m)
 
-  // Group matters by lead attorney
+  // Group matters by lead lawyer
   const columns = [
     {
       id: "unassigned",
@@ -166,7 +159,7 @@ export default function Workload() {
       initial: "?",
       matters: matters.filter(m => !m.lead || m.lead === "Unassigned"),
     },
-    ...users.map(u => ({
+    ...lawyers.map(u => ({
       id: u.id,
       name: u.name,
       initial: u.name.charAt(0).toUpperCase(),
@@ -182,9 +175,9 @@ export default function Workload() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Workload by Owner</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Workload</h1>
           <p className="text-muted-foreground mt-1">
-            All cases grouped by lead attorney. Click a file tab to expand or interact.
+            All cases grouped by lead lawyer. Click a file tab to expand or interact.
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm">
@@ -195,6 +188,17 @@ export default function Workload() {
             {matters.filter(m => !m.lead || m.lead === "Unassigned").length} unassigned
           </div>
         </div>
+      </div>
+
+      {/* Priority legend */}
+      <div className="flex items-center gap-4 text-xs text-slate-500">
+        <span className="font-medium">Priority:</span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm bg-red-600"></span> URGENT
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block w-3 h-3 rounded-sm bg-[#E0F2FE]"></span> Normal
+        </span>
       </div>
 
       {/* Empty state */}

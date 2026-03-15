@@ -190,7 +190,7 @@ export default function Dashboard() {
                   <tr className="border-b border-slate-100">
                     <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Case</th>
                     <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Status</th>
-                    <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Lead Attorney</th>
+                    <th className="text-left text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2 pr-4">Lead Lawyer</th>
                     <th className="text-right text-xs font-semibold text-slate-400 uppercase tracking-wide pb-2">Time Open</th>
                   </tr>
                 </thead>
@@ -204,7 +204,6 @@ export default function Dashboard() {
                           </div>
                           <div>
                             <p className="font-semibold text-slate-800 leading-tight">{matter.name}</p>
-                            {matter.type && <p className="text-xs text-slate-400">{matter.type}</p>}
                           </div>
                         </div>
                       </td>
