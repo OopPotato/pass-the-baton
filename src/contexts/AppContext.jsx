@@ -36,18 +36,39 @@ export const AppProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true
 
-    const handleSession = async (session) => {
-      console.log('Handling auth session:', session?.user?.email || 'No user')
+    const handleSession = async (event, session) => {
+      console.log(`[Auth Event: ${event}] Session email:`, session?.user?.email || 'No user')
       
+      // If we are still initializing and have no session yet, sit tight for a bit
+      if (event === 'INITIAL_SESSION' && !session) {
+        console.log('No initial session found, waiting...')
+        // Don't set isAuthLoading(false) yet, give onAuthStateChange a chance to fire
+        // if there's a code exchange happening.
+      }
+
       if (!session?.user) {
-        if (mounted) { setAuthUser(null); setIsAuthLoading(false) }
+        if (mounted && event !== 'INITIAL_SESSION') {
+          console.log('Clearing auth state')
+          setAuthUser(null)
+          setIsAuthLoading(false)
+        } else if (mounted && event === 'INITIAL_SESSION' && !session) {
+          // If after a small timeout we still have no session, then we're truly logged out
+          setTimeout(() => {
+            if (mounted && !authUser) {
+              console.log('Confirming unauthenticated after timeout')
+              setIsAuthLoading(false)
+            }
+          }, 1500)
+        }
         return
       }
 
+      console.log('Checking whitelist for:', session.user.email)
       const allowed = await checkWhitelist(session.user.email)
-      console.log('Whitelist status for', session.user.email, ':', allowed)
+      console.log('Whitelist result for', session.user.email, ':', allowed)
       
       if (!allowed) {
+        console.warn('Access denied: User not on whitelist')
         await supabase.auth.signOut()
         if (mounted) {
           setAuthUser(null)
@@ -58,22 +79,20 @@ export const AppProvider = ({ children }) => {
       }
 
       if (mounted) {
+        console.log('Access granted!')
         setAuthUser(session.user)
         setAuthError(null)
         setIsAuthLoading(false)
       }
     }
 
-    // Get current session
-    supabase.auth.getSession().then(({ data: { session } }) => handleSession(session))
-
-    // Listen for future changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleSession(session)
+    // Rely on onAuthStateChange for both initial check and updates
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      handleSession(event, session)
     })
 
     return () => { mounted = false; subscription.unsubscribe() }
-  }, [checkWhitelist])
+  }, [checkWhitelist, authUser])
 
   // ── Fetch data when authUser is set ───────────────────────────────────────
   useEffect(() => {
