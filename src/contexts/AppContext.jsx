@@ -119,13 +119,20 @@ export const AppProvider = ({ children }) => {
   // ── Auth actions ──────────────────────────────────────────────────────────
   const sendMagicLink = useCallback(async (email) => {
     setAuthError(null)
+    
+    // Check whitelist first to avoid wasting email rate limits
+    const allowed = await checkWhitelist(email)
+    if (!allowed) {
+      throw new Error('Your email is not authorised to access this application.')
+    }
+
     const redirectTo = window.location.origin + '/'
     const { error } = await supabase.auth.signInWithOtp({
       email: email.toLowerCase().trim(),
       options: { emailRedirectTo: redirectTo },
     })
     if (error) throw error
-  }, [])
+  }, [checkWhitelist])
 
   const logoutUser = useCallback(async () => {
     await supabase.auth.signOut()
