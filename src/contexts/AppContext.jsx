@@ -18,11 +18,17 @@ export const AppProvider = ({ children }) => {
 
   // ── Check whitelist ────────────────────────────────────────────────────────
   const checkWhitelist = useCallback(async (email) => {
-    const { data } = await supabase
+    if (!email) return false
+    const { data, error } = await supabase
       .from('allowed_emails')
       .select('email')
-      .eq('email', email.toLowerCase().trim())
+      .ilike('email', email.trim()) // Changed to case-insensitive ilike
       .maybeSingle()
+    
+    if (error) {
+      console.error('Whitelist check error:', error)
+      return false
+    }
     return !!data
   }, [])
 
@@ -31,17 +37,21 @@ export const AppProvider = ({ children }) => {
     let mounted = true
 
     const handleSession = async (session) => {
+      console.log('Handling auth session:', session?.user?.email || 'No user')
+      
       if (!session?.user) {
         if (mounted) { setAuthUser(null); setIsAuthLoading(false) }
         return
       }
 
       const allowed = await checkWhitelist(session.user.email)
+      console.log('Whitelist status for', session.user.email, ':', allowed)
+      
       if (!allowed) {
         await supabase.auth.signOut()
         if (mounted) {
           setAuthUser(null)
-          setAuthError('Your email is not authorised to access this application.')
+          setAuthError('Your email address is not authorised to access this application.')
           setIsAuthLoading(false)
         }
         return
