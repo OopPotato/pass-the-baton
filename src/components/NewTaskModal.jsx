@@ -1,7 +1,7 @@
 import React, { useState } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { format } from "date-fns"
-import { Calendar as CalendarIcon, Loader2 } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, Plus, X, ListTodo } from "lucide-react"
 
 import {
   Dialog,
@@ -25,6 +25,7 @@ import { cn } from "../lib/utils"
 export default function NewTaskModal({ open, onOpenChange }) {
   const { matters, users, addTask } = useAppContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [checklist, setChecklist] = useState([])
 
   const {
     register,
@@ -44,6 +45,22 @@ export default function NewTaskModal({ open, onOpenChange }) {
     },
   })
 
+  const addChecklistItem = () => setChecklist([...checklist, { id: Date.now().toString(), text: "", completed: false }])
+  const updateChecklistItem = (id, text) => setChecklist(checklist.map(c => c.id === id ? { ...c, text } : c))
+  const removeChecklistItem = (id) => setChecklist(checklist.filter(c => c.id !== id))
+  
+  const applyDefenceTemplate = () => {
+    setChecklist([
+      { id: Date.now().toString() + '1', text: 'framework', completed: false },
+      { id: Date.now().toString() + '2', text: 'approve framework', completed: false },
+      { id: Date.now().toString() + '3', text: 'flesh out', completed: false },
+      { id: Date.now().toString() + '4', text: 'approve fleshed out ver', completed: false },
+      { id: Date.now().toString() + '5', text: 'file', completed: false },
+      { id: Date.now().toString() + '6', text: 'serve', completed: false },
+      { id: Date.now().toString() + '7', text: 'inform client', completed: false },
+    ])
+  }
+
   const onSubmit = async (data) => {
     setIsSubmitting(true)
     
@@ -58,9 +75,11 @@ export default function NewTaskModal({ open, onOpenChange }) {
       dueDate: data.dueDate,
       assignTo: data.assignTo,
       description: data.description,
+      checklist: checklist.filter(c => c.text.trim() !== ""),
     })
     
     setIsSubmitting(false)
+    setChecklist([])
     reset()
     onOpenChange(false)
   }
@@ -69,6 +88,7 @@ export default function NewTaskModal({ open, onOpenChange }) {
   const handleOpenChange = (isOpen) => {
     if (!isOpen) {
       reset()
+      setChecklist([])
     }
     onOpenChange(isOpen)
   }
@@ -222,6 +242,63 @@ export default function NewTaskModal({ open, onOpenChange }) {
                 className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
                 {...register("description")}
               />
+            </div>
+
+            {/* Checklist */}
+            <div className="space-y-3 pt-4 pb-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <ListTodo className="h-4 w-4 text-slate-500" />
+                  Task Checklist
+                </label>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-7 text-xs px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
+                  onClick={applyDefenceTemplate}
+                >
+                  Defence Template
+                </Button>
+              </div>
+              
+              {checklist.length > 0 && (
+                <div className="space-y-2.5">
+                  {checklist.map((item, index) => (
+                    <div key={item.id} className="flex items-start gap-2">
+                      <div className="mt-1 h-5 w-5 rounded border border-slate-300 bg-slate-50 flex items-center justify-center shrink-0">
+                        <span className="text-[10px] text-slate-400">{index + 1}</span>
+                      </div>
+                      <Input
+                        value={item.text}
+                        onChange={(e) => updateChecklistItem(item.id, e.target.value)}
+                        placeholder="Checklist item text"
+                        className="h-8 text-sm flex-1 font-medium bg-white"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0"
+                        onClick={() => removeChecklistItem(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-full h-8 border-dashed border-slate-300 text-slate-500 hover:text-slate-700 bg-transparent hover:bg-slate-50"
+                onClick={addChecklistItem}
+              >
+                <Plus className="h-4 w-4 mr-1.5" />
+                Add Checklist Item
+              </Button>
             </div>
 
           </div>

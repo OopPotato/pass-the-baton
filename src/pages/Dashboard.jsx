@@ -7,6 +7,7 @@ import { Badge } from "../components/ui/badge"
 import { Plus, ArrowRight, Circle, CheckCircle2, AlertCircle, Clock, Briefcase, User2 } from "lucide-react"
 import { useAppContext } from "../contexts/AppContext"
 import NewMatterModal from "../components/NewMatterModal"
+import TaskDetailsModal from "../components/TaskDetailsModal"
 
 const getStatusIcon = (status) => {
   switch(status?.toLowerCase()) {
@@ -20,6 +21,7 @@ const getStatusIcon = (status) => {
 export default function Dashboard() {
   const { matters, handoffs, currentUser, users } = useAppContext()
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState(null)
   const navigate = useNavigate()
 
   const pendingCount = handoffs.filter(h => h.status?.toLowerCase() === 'pending').length
@@ -102,21 +104,32 @@ export default function Dashboard() {
                 <p className="text-sm text-muted-foreground text-center py-4">No recent handoffs.</p>
               ) : (
                 handoffs.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between border-b border-border/50 pb-4 last:border-0 last:pb-0">
+                  <div 
+                    key={item.id} 
+                    className="flex items-center justify-between border-b border-border/50 pb-3 pt-1 last:border-0 last:pb-0 hover:bg-slate-50 px-3 -mx-3 rounded-lg cursor-pointer transition-colors"
+                    onClick={() => setSelectedTask(item)}
+                  >
                     <div className="flex items-start gap-4">
                       <div className="mt-1">{getStatusIcon(item.status)}</div>
                       <div>
-                        <p className="font-medium text-foreground">{item.task}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-foreground">{item.task}</p>
+                          {item.checklist?.length > 0 && (
+                            <Badge variant="outline" className="text-[10px] h-5 py-0 px-1.5 font-normal bg-slate-50">
+                              {item.checklist.filter(c => c.completed).length}/{item.checklist.length}
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-sm text-muted-foreground">{item.matter}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="hidden sm:flex items-center gap-2 text-muted-foreground">
-                        <span className="font-medium text-foreground">{item.from}</span>
-                        <ArrowRight className="h-4 w-4" />
-                        <span className="font-medium text-foreground">{item.to}</span>
+                    <div className="flex items-center gap-4 text-sm mt-1">
+                      <div className="hidden sm:flex items-center gap-2 text-muted-foreground bg-slate-100/50 px-2 py-0.5 rounded-md">
+                        <span className="font-medium text-foreground">{item.from.split(' ')[0]}</span>
+                        <ArrowRight className="h-3 w-3" />
+                        <span className="font-medium text-foreground">{item.to.split(' ')[0]}</span>
                       </div>
-                      <span className="text-muted-foreground whitespace-nowrap">{item.date}</span>
+                      <span className="text-muted-foreground whitespace-nowrap text-xs">{item.date}</span>
                     </div>
                   </div>
                 ))
@@ -246,6 +259,11 @@ export default function Dashboard() {
       </Card>
 
       <NewMatterModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      <TaskDetailsModal 
+        open={!!selectedTask} 
+        onOpenChange={(open) => !open && setSelectedTask(null)} 
+        task={selectedTask} 
+      />
     </div>
   )
 }

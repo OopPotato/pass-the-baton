@@ -235,8 +235,13 @@ export const AppProvider = ({ children }) => {
       matter_name: matterName, task: newTask.title,
       from_name: authUser?.email || 'Unknown', to_name: assignedUser,
       status: newTask.status?.toLowerCase() || 'pending',
+      checklist: newTask.checklist || [],
     })
   }, [lawyers, matters, authUser])
+
+  const updateTaskChecklist = useCallback(async (taskId, newChecklist) => {
+    await supabase.from('handoffs').update({ checklist: newChecklist }).eq('id', taskId)
+  }, [])
 
   // ── Shape DB snake_case → UI camelCase ────────────────────────────────────
   const shapedMatters = matters.map(m => ({
@@ -248,6 +253,7 @@ export const AppProvider = ({ children }) => {
     date: h.created_at
       ? new Date(h.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'Just now',
+    checklist: h.checklist || [],
   }))
 
   return (
@@ -263,7 +269,7 @@ export const AppProvider = ({ children }) => {
       // Matter CRUD
       addMatter, updateMatter, deleteMatter, archiveMatter: deleteMatter, assignMatter,
       // Handoffs
-      addTask, passTheBaton,
+      addTask, passTheBaton, updateTaskChecklist,
       // Legacy no-op (login now handled via Supabase Auth)
       loginUser: () => {},
     }}>
