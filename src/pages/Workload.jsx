@@ -116,8 +116,23 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
                   </span>
                 </div>
 
+                {/* Assigned Tasks */}
+                {m.assignedTasks && m.assignedTasks.length > 0 && (
+                  <div className="pt-2 border-t border-slate-100">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">My Tasks</p>
+                    <div className="space-y-1.5">
+                      {m.assignedTasks.map(task => (
+                        <div key={task.id} className="flex items-start gap-2 bg-slate-50 p-2 rounded-md border border-slate-100">
+                           <div className="h-4 w-4 rounded-full border border-slate-300 bg-white shadow-sm shrink-0 mt-0.5" />
+                           <p className="text-xs text-slate-700 leading-snug">{task.task || task.title}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
-                <div className="flex items-center gap-2 pt-1 border-t border-slate-50">
+                <div className="flex items-center gap-2 pt-2 border-t border-slate-50">
                   <Button
                     size="sm" variant="outline"
                     className="flex-1 h-7 text-xs gap-1.5"
@@ -154,19 +169,25 @@ export default function Workload() {
   const handleEdit = (m) => { setEditMatter(m); setIsEditOpen(true) }
   const handlePassBaton = (m) => setBatonMatter(m)
 
-  // Group matters by lead lawyer
+  // Group matters by lead lawyer OR assigned tasks
   const columns = [
     {
       id: "unassigned",
       name: "Unassigned",
       initial: "?",
-      matters: matters.filter(m => !m.lead || m.lead === "Unassigned"),
+      matters: matters.filter(m => (!m.lead || m.lead === "Unassigned") && !handoffs.some(h => h.matter === m.name && (!h.to || h.to === 'Unassigned'))),
     },
     ...lawyers.map(u => ({
       id: u.id,
       name: u.name,
       initial: u.name.charAt(0).toUpperCase(),
-      matters: matters.filter(m => m.lead === u.name),
+      matters: matters.filter(m => 
+        m.lead === u.name || 
+        handoffs.some(h => h.to === u.name && (h.matter === m.name || h.matter_name === m.name))
+      ).map(m => ({
+        ...m,
+        assignedTasks: handoffs.filter(h => h.to === u.name && (h.matter === m.name || h.matter_name === m.name))
+      })),
     })),
   ]
 

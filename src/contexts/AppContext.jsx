@@ -231,12 +231,28 @@ export const AppProvider = ({ children }) => {
   const addTask = useCallback(async (newTask) => {
     const assignedUser = lawyers.find(l => l.id === newTask.assignTo)?.name || 'Unassigned'
     const matterName   = matters.find(m => m.id === newTask.matter)?.name   || 'Unknown Matter'
-    await supabase.from('handoffs').insert({
+    
+    const { data, error } = await supabase.from('handoffs').insert({
       matter_name: matterName, task: newTask.title,
       from_name: authUser?.email || 'Unknown', to_name: assignedUser,
       status: newTask.status?.toLowerCase() || 'pending',
       checklist: newTask.checklist || [],
-    })
+    }).select().single()
+
+    if (error) {
+      console.error("Error creating task:", error)
+      alert("Failed to create task: " + error.message) // Alert user directly
+      return
+    }
+
+    if (data) {
+       // Optimistic/Manual update in case realtime Websocket is slow/disabled
+       setHandoffs(prev => {
+         // Avoid duplicates if Realtime catches it
+         if (prev.some(h => h.id === data.id)) return prev
+         return [data, ...prev]
+       })
+    }
   }, [lawyers, matters, authUser])
 
   const updateTaskChecklist = useCallback(async (taskId, newChecklist) => {
