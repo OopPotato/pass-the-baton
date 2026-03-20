@@ -217,15 +217,8 @@ export const AppProvider = ({ children }) => {
 
   // ── Pass the Baton ────────────────────────────────────────────────────────
   const passTheBaton = useCallback(async (matterId, toUserName, contextNote, priority = 'pending') => {
-    const matter = matters.find(m => m.id === matterId)
-    const fromName = matter?.lead || authUser?.email || 'Unknown'
     await supabase.from('matters').update({ lead: toUserName, updated_at: new Date().toISOString() }).eq('id', matterId)
-    await supabase.from('handoffs').insert({
-      matter_name: matter?.name ?? 'Unknown Matter',
-      task: contextNote || `Case transferred to ${toUserName}`,
-      from_name: fromName, to_name: toUserName, status: priority,
-    })
-  }, [matters, authUser])
+  }, [])
 
   // ── Tasks / Handoffs ──────────────────────────────────────────────────────
   const addTask = useCallback(async (newTask) => {

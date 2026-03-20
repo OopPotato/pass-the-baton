@@ -127,33 +127,46 @@ export default function Tasks() {
                        <p className="text-sm text-slate-500 text-center py-6 italic">No tasks created for this matter yet.</p>
                     ) : (
                       <div className="space-y-2">
-                        {matter.tasks.map(task => (
-                           <div 
-                             key={task.id}
-                             onClick={() => setSelectedTask(task)}
-                             className="flex items-center justify-between p-3 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100 cursor-pointer transition-all"
-                           >
-                             <div className="flex items-center gap-3">
-                               {getStatusIcon(task.status)}
-                               <div>
-                                 <p className="text-sm font-medium text-slate-800">{task.task || task.title}</p>
-                                 <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                                    <span className="font-medium">{task.to}</span>
-                                    {task.checklist?.length > 0 && (
-                                      <span className="bg-slate-100 px-1.5 rounded text-[10px]">
-                                        {task.checklist.filter(c => c.completed).length}/{task.checklist.length} done
-                                      </span>
-                                    )}
-                                 </p>
-                               </div>
-                             </div>
-                             
-                             <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                               <Calendar className="h-3 w-3" />
-                               {task.date || formatDistanceToNow(new Date(task.created_at || new Date()), { addSuffix: true })}
-                             </div>
-                           </div>
-                        ))}
+                        {matter.tasks.map(task => {
+                           const totalItems = task.checklist?.length ?? 0
+                           const doneItems = task.checklist?.filter(c => c.completed).length ?? 0
+                           const isTaskDone = task.status?.toLowerCase() === 'completed' || (totalItems > 0 && doneItems === totalItems)
+                           return (
+                            <div 
+                              key={task.id}
+                              onClick={() => setSelectedTask(task)}
+                              className={cn(
+                                "flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all duration-300",
+                                isTaskDone
+                                  ? "bg-green-50 border-green-200 hover:bg-green-100"
+                                  : "border-transparent hover:bg-slate-50 hover:border-slate-100"
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                {isTaskDone
+                                  ? <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                                  : getStatusIcon(task.status)
+                                }
+                                <div>
+                                  <p className={cn("text-sm font-medium", isTaskDone ? "text-green-700 line-through" : "text-slate-800")}>{task.task || task.title}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                                     <span className="font-medium">{task.to}</span>
+                                     {totalItems > 0 && (
+                                       <span className={cn("px-1.5 rounded text-[10px]", isTaskDone ? "bg-green-100 text-green-700" : "bg-slate-100")}>
+                                         {doneItems}/{totalItems} done
+                                       </span>
+                                     )}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                                <Calendar className="h-3 w-3" />
+                                {task.date || formatDistanceToNow(new Date(task.created_at || new Date()), { addSuffix: true })}
+                              </div>
+                            </div>
+                           )
+                        })}
                       </div>
                     )}
                   </div>

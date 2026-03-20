@@ -2,7 +2,7 @@ import React, { useState } from "react"
 import { useAppContext } from "../contexts/AppContext"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { Briefcase, Layers, Pencil, ArrowRight, Calendar, ChevronDown, Plus, Users } from "lucide-react"
+import { Briefcase, Layers, Pencil, ArrowRight, Calendar, ChevronDown, Plus, Users, CheckCircle2, Circle } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "../lib/utils"
 import PassTheBatonModal from "../components/PassTheBatonModal"
@@ -32,9 +32,19 @@ const getPriorityTabColor = (priority) => {
 
 // ── File-drawer accordion: tabs stack up, active one expands content ──
 function MatterStack({ matters, onEdit, onPassBaton }) {
+  const { updateTaskChecklist } = useAppContext()
   // Sort latest updated = front (index 0)
   const sorted = [...matters].sort((a, b) => new Date(b.updated) - new Date(a.updated))
   const [activeIdx, setActiveIdx] = useState(0)
+  // local checklist state keyed by task id
+  const [checklistState, setChecklistState] = useState({})
+
+  const toggleTaskItem = async (task, itemId) => {
+    const current = checklistState[task.id] ?? task.checklist ?? []
+    const updated = current.map(c => c.id === itemId ? { ...c, completed: !c.completed } : c)
+    setChecklistState(prev => ({ ...prev, [task.id]: updated }))
+    await updateTaskChecklist(task.id, updated)
+  }
 
   if (sorted.length === 0) {
     return (
@@ -116,20 +126,65 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
                   </span>
                 </div>
 
-                {/* All Tasks for the Matter */}
+                {/* All Tasks for the Matter — interactive */}
                 {m.allTasks && m.allTasks.length > 0 && (
                   <div className="pt-2 border-t border-slate-100">
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tasks</p>
                     <div className="space-y-1.5">
-                      {m.allTasks.map(task => (
-                        <div key={task.id} className="flex items-start gap-2 bg-slate-50 p-2 rounded-md border border-slate-100">
-                           <div className="h-4 w-4 rounded-full border border-slate-300 bg-white shadow-sm shrink-0 mt-0.5" />
-                           <div className="flex-1 min-w-0">
-                             <p className="text-xs text-slate-700 leading-snug">{task.task || task.title}</p>
-                             <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Owner: {task.to}</p>
-                           </div>
-                        </div>
-                      ))}
+                      {m.allTasks.map(task => {
+                        const items = checklistState[task.id] ?? task.checklist ?? []
+                        const doneCount = items.filter(c => c.completed).length
+                        const totalCount = items.length
+                        const isTaskDone = totalCount > 0 && doneCount === totalCount
+                        return (
+                          <div key={task.id} className={cn(
+                            "rounded-md border p-2 transition-all duration-300",
+                            isTaskDone ? "bg-green-50 border-green-200" : "bg-slate-50 border-slate-100"
+                          )}>
+                            {/* Task header row */}
+                            <div className="flex items-center gap-2">
+                              {isTaskDone
+                                ? <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+                                : <Circle className="h-4 w-4 text-slate-300 shrink-0" />
+                              }
+                              <div className="flex-1 min-w-0">
+                                <p className={cn("text-xs leading-snug", isTaskDone ? "text-green-700 line-through font-medium" : "text-slate-700")}>
+                                  {task.task || task.title}
+                                </p>
+                                <p className="text-[10px] text-slate-500 mt-0.5">
+                                  Owner: <span className="font-medium">{task.to}</span>
+                                  {totalCount > 0 && (
+                                    <span className={cn("ml-1 px-1 rounded", isTaskDone ? "bg-green-100 text-green-700" : "bg-slate-200 text-slate-500")}>
+                                      {doneCount}/{totalCount} done
+                                    </span>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Inline checklist items */}
+                            {items.length > 0 && (
+                              <div className="mt-1.5 ml-6 space-y-1">
+                                {items.map(item => (
+                                  <button
+                                    key={item.id}
+                                    onClick={e => { e.stopPropagation(); toggleTaskItem(task, item.id) }}
+                                    className="flex items-center gap-1.5 w-full text-left group"
+                                  >
+                                    {item.completed
+                                      ? <CheckCircle2 className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                      : <Circle className="h-3.5 w-3.5 text-slate-300 group-hover:text-slate-500 shrink-0 transition-colors" />
+                                    }
+                                    <span className={cn(
+                                      "text-[11px] leading-snug",
+                                      item.completed ? "line-through text-slate-400" : "text-slate-600 group-hover:text-slate-800"
+                                    )}>{item.text}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}
@@ -172,28 +227,30 @@ export default function Workload() {
   const handleEdit = (m) => { setEditMatter(m); setIsEditOpen(true) }
   const handlePassBaton = (m) => setBatonMatter(m)
 
-  // Group matters by lead lawyer OR assigned tasks
+  // Group matters by lead lawyer only (no duplication across task assignees)
+  // Each matter appears exactly in its lead lawyer's column
   const columns = [
     {
       id: "unassigned",
       name: "Unassigned",
       initial: "?",
-      matters: matters.filter(m => (!m.lead || m.lead === "Unassigned") && !handoffs.some(h => h.matter === m.name && (!h.to || h.to === 'Unassigned'))).map(m => ({
-        ...m,
-        allTasks: handoffs.filter(h => h.matter === m.name || h.matter_name === m.name)
-      })),
+      matters: matters
+        .filter(m => !m.lead || m.lead === "Unassigned")
+        .map(m => ({
+          ...m,
+          allTasks: handoffs.filter(h => h.matter === m.name || h.matter_name === m.name)
+        })),
     },
     ...lawyers.map(u => ({
       id: u.id,
       name: u.name,
       initial: u.name.charAt(0).toUpperCase(),
-      matters: matters.filter(m => 
-        m.lead === u.name || 
-        handoffs.some(h => h.to === u.name && (h.matter === m.name || h.matter_name === m.name))
-      ).map(m => ({
-        ...m,
-        allTasks: handoffs.filter(h => h.matter === m.name || h.matter_name === m.name)
-      })),
+      matters: matters
+        .filter(m => m.lead === u.name)
+        .map(m => ({
+          ...m,
+          allTasks: handoffs.filter(h => h.matter === m.name || h.matter_name === m.name)
+        })),
     })),
   ]
 
