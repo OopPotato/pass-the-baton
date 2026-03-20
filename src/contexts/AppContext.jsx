@@ -230,6 +230,7 @@ export const AppProvider = ({ children }) => {
       from_name: authUser?.email || 'Unknown', to_name: assignedUser,
       status: newTask.status?.toLowerCase() || 'pending',
       checklist: newTask.checklist || [],
+      due_date: newTask.dueDate || null,
     }).select().single()
 
     if (error) {
@@ -272,6 +273,7 @@ export const AppProvider = ({ children }) => {
       to_name: assignedUser,
       status: updates.status?.toLowerCase() || 'pending',
       checklist: updates.checklist || [],
+      due_date: updates.dueDate || null,
     }).eq('id', taskId).select().single()
     if (!error && data) {
       setHandoffs(prev => prev.map(h => h.id === taskId ? data : h))
@@ -288,6 +290,7 @@ export const AppProvider = ({ children }) => {
     date: h.created_at
       ? new Date(h.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
       : 'Just now',
+    dueDate: h.due_date || null,
     checklist: h.checklist || [],
   }))
 

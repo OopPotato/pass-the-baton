@@ -55,9 +55,9 @@ function TaskItem({ task, onEdit }) {
           {task.to && task.to !== "Unassigned" && (
             <p className="text-[11px] text-slate-400">{task.to}</p>
           )}
-          {task.date && !isDone && (() => {
+          {task.dueDate && !isDone && (() => {
             try {
-              const due = parseISO(task.date)
+              const due = parseISO(task.dueDate)
               const overdue = isPast(due)
               const soonish = !overdue && differenceInDays(due, new Date()) <= 3
               return (
@@ -71,10 +71,10 @@ function TaskItem({ task, onEdit }) {
               )
             } catch { return null }
           })()}
-          {task.date && isDone && (
+          {task.dueDate && isDone && (
             <span className="flex items-center gap-0.5 text-[11px] text-green-600">
               <Calendar className="h-3 w-3" />
-              {task.date}
+              {task.dueDate}
             </span>
           )}
         </div>
@@ -120,8 +120,8 @@ export default function Tasks() {
         .filter(h => h.matter_name === matter.name || h.matter === matter.name || h.matter_id === matter.id)
         .sort((a, b) => {
           // Closest due date first; undated tasks go to the end
-          const aDate = a.date ? new Date(a.date).getTime() : Infinity
-          const bDate = b.date ? new Date(b.date).getTime() : Infinity
+          const aDate = a.dueDate ? new Date(a.dueDate).getTime() : Infinity
+          const bDate = b.dueDate ? new Date(b.dueDate).getTime() : Infinity
           return aDate - bDate
         })
       return { ...matter, tasks }

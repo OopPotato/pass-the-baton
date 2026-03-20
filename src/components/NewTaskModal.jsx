@@ -24,7 +24,7 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter, initia
           matter: defaultMatter || "",
           assignTo: initialTask.to || "",
           status: initialTask.status || "pending",
-          dueDate: "",
+          dueDate: initialTask.dueDate || "",
         })
       } else {
         reset({ title: "", matter: defaultMatter || "", assignTo: "", status: "pending", dueDate: "" })
@@ -36,7 +36,7 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter, initia
 
   const onSubmit = async (data) => {
     if (isEditMode) {
-      await updateTask(initialTask.id, { title: data.title, assignTo: data.assignTo, status: data.status, checklist: initialTask.checklist || [] })
+      await updateTask(initialTask.id, { title: data.title, assignTo: data.assignTo, status: data.status, dueDate: data.dueDate, checklist: initialTask.checklist || [] })
     } else {
       await new Promise(r => setTimeout(r, 400))
       addTask({ title: data.title, matter: data.matter, status: data.status, dueDate: data.dueDate, assignTo: data.assignTo, checklist: [] })
