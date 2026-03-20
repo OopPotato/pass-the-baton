@@ -252,6 +252,13 @@ export const AppProvider = ({ children }) => {
     await supabase.from('handoffs').update({ checklist: newChecklist }).eq('id', taskId)
   }, [])
 
+  const deleteTask = useCallback(async (taskId) => {
+    const { error } = await supabase.from('handoffs').delete().eq('id', taskId)
+    if (!error) {
+      setHandoffs(prev => prev.filter(h => h.id !== taskId))
+    }
+  }, [])
+
   // ── Shape DB snake_case → UI camelCase ────────────────────────────────────
   const shapedMatters = matters.map(m => ({
     ...m, updated: m.updated_at, caseNumber: m.case_number,
@@ -278,7 +285,7 @@ export const AppProvider = ({ children }) => {
       // Matter CRUD
       addMatter, updateMatter, deleteMatter, archiveMatter: deleteMatter, assignMatter,
       // Handoffs
-      addTask, passTheBaton, updateTaskChecklist,
+      addTask, passTheBaton, updateTaskChecklist, deleteTask,
       // Legacy no-op (login now handled via Supabase Auth)
       loginUser: () => {},
     }}>

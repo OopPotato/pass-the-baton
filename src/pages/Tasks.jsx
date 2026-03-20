@@ -2,16 +2,17 @@ import React, { useState, useMemo } from "react"
 import { useAppContext } from "../contexts/AppContext"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { Briefcase, ListTodo, Plus, ChevronDown, CheckCircle2, Circle, Calendar } from "lucide-react"
+import { Briefcase, ListTodo, Plus, ChevronDown, CheckCircle2, Circle, Calendar, Trash2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "../lib/utils"
 import NewTaskModal from "../components/NewTaskModal"
 
 // ── Individual task row with inline expandable checklist ──────────────────────
 function TaskRow({ task }) {
-  const { updateTaskChecklist } = useAppContext()
+  const { updateTaskChecklist, deleteTask } = useAppContext()
   const [checklist, setChecklist] = useState(task.checklist || [])
   const [isExpanded, setIsExpanded] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const totalItems = checklist.length
   const doneItems = checklist.filter(c => c.completed).length
@@ -21,6 +22,17 @@ function TaskRow({ task }) {
     const updated = checklist.map(c => c.id === itemId ? { ...c, completed: !c.completed } : c)
     setChecklist(updated)
     await updateTaskChecklist(task.id, updated)
+  }
+
+  const handleDelete = (e) => {
+    e.stopPropagation()
+    if (!confirmDelete) {
+      setConfirmDelete(true)
+      // Auto-reset after 3 seconds if not confirmed  
+      setTimeout(() => setConfirmDelete(false), 3000)
+    } else {
+      deleteTask(task.id)
+    }
   }
 
   return (
@@ -69,6 +81,22 @@ function TaskRow({ task }) {
             <Calendar className="h-3 w-3" />
             {task.date || formatDistanceToNow(new Date(task.created_at || new Date()), { addSuffix: true })}
           </div>
+
+          {/* Delete button — two-click confirm */}
+          <button
+            onClick={handleDelete}
+            title={confirmDelete ? "Click again to confirm deletion" : "Delete task"}
+            className={cn(
+              "flex items-center gap-1 text-xs px-2 py-1 rounded-md border transition-all duration-200",
+              confirmDelete
+                ? "bg-red-500 border-red-500 text-white hover:bg-red-600"
+                : "bg-transparent border-transparent text-slate-300 hover:text-red-400 hover:border-red-200 hover:bg-red-50"
+            )}
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {confirmDelete && <span className="font-medium">Confirm?</span>}
+          </button>
+
           {totalItems > 0 && (
             <ChevronDown className={cn(
               "h-4 w-4 text-slate-400 transition-transform duration-200",
