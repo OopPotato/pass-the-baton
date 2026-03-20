@@ -252,6 +252,12 @@ export const AppProvider = ({ children }) => {
     await supabase.from('handoffs').update({ checklist: newChecklist }).eq('id', taskId)
   }, [])
 
+  const toggleTaskDone = useCallback(async (taskId, currentStatus) => {
+    const newStatus = currentStatus?.toLowerCase() === 'completed' ? 'pending' : 'completed'
+    const { data } = await supabase.from('handoffs').update({ status: newStatus }).eq('id', taskId).select().single()
+    if (data) setHandoffs(prev => prev.map(h => h.id === taskId ? data : h))
+  }, [])
+
   const deleteTask = useCallback(async (taskId) => {
     const { error } = await supabase.from('handoffs').delete().eq('id', taskId)
     if (!error) {
@@ -298,7 +304,7 @@ export const AppProvider = ({ children }) => {
       // Matter CRUD
       addMatter, updateMatter, deleteMatter, archiveMatter: deleteMatter, assignMatter,
       // Handoffs
-      addTask, passTheBaton, updateTaskChecklist, deleteTask, updateTask,
+      addTask, passTheBaton, updateTaskChecklist, deleteTask, updateTask, toggleTaskDone,
       // Legacy no-op (login now handled via Supabase Auth)
       loginUser: () => {},
     }}>
