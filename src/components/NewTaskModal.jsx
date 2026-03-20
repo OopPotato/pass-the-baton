@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { format } from "date-fns"
 import { Calendar as CalendarIcon, Loader2, Plus, X, ListTodo } from "lucide-react"
@@ -22,7 +22,7 @@ import {
 import { useAppContext } from "../contexts/AppContext"
 import { cn } from "../lib/utils"
 
-export default function NewTaskModal({ open, onOpenChange }) {
+export default function NewTaskModal({ open, onOpenChange, defaultMatter }) {
   const { matters, users, addTask } = useAppContext()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [checklist, setChecklist] = useState([])
@@ -36,7 +36,7 @@ export default function NewTaskModal({ open, onOpenChange }) {
   } = useForm({
     defaultValues: {
       title: "",
-      matter: "",
+      matter: defaultMatter || "",
       priority: "Medium",
       status: "Pending",
       dueDate: "",
@@ -84,10 +84,34 @@ export default function NewTaskModal({ open, onOpenChange }) {
     onOpenChange(false)
   }
 
+  // Use effect to reset with defaultMatter when modal opens
+  useEffect(() => {
+    if (open) {
+      reset({
+        title: "",
+        matter: defaultMatter || "",
+        priority: "Medium",
+        status: "Pending",
+        dueDate: "",
+        assignTo: "",
+        description: "",
+      })
+      setChecklist([])
+    }
+  }, [open, defaultMatter, reset])
+
   // Handle open state change (reset form if closed)
   const handleOpenChange = (isOpen) => {
     if (!isOpen) {
-      reset()
+      reset({
+        title: "",
+        matter: "",
+        priority: "Medium",
+        status: "Pending",
+        dueDate: "",
+        assignTo: "",
+        description: "",
+      })
       setChecklist([])
     }
     onOpenChange(isOpen)

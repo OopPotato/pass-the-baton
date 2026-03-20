@@ -4,6 +4,7 @@ import Layout from "./components/layout/Layout"
 import Dashboard from "./pages/Dashboard"
 import Login from "./pages/Login"
 import Matters from "./pages/Matters"
+import Tasks from "./pages/Tasks"
 import Workload from "./pages/Workload"
 import { useAppContext } from "./contexts/AppContext"
 
@@ -55,6 +56,7 @@ function AppRoutes() {
       >
         <Route path="/" element={<Dashboard />} />
         <Route path="/matters" element={<Matters />} />
+        <Route path="/tasks" element={<Tasks />} />
         <Route path="/handoffs" element={<Workload />} />
         <Route path="/settings" element={<PlaceholderPage title="Settings" />} />
       </Route>

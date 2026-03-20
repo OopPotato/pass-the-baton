@@ -1,6 +1,6 @@
 import React from "react"
 import { Outlet, NavLink, useLocation } from "react-router-dom"
-import { LayoutDashboard, Briefcase, Users, Settings, LogOut, Bell, User } from "lucide-react"
+import { LayoutDashboard, Briefcase, ListTodo, Users, Settings, LogOut, Bell, User } from "lucide-react"
 import { cn } from "../../lib/utils"
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ import { useAppContext } from "../../contexts/AppContext"
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Matters", href: "/matters" },
+  { icon: ListTodo, label: "Tasks", href: "/tasks" },
   { icon: Users, label: "Workload", href: "/handoffs" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]
