@@ -259,6 +259,19 @@ export const AppProvider = ({ children }) => {
     }
   }, [])
 
+  const updateTask = useCallback(async (taskId, updates) => {
+    const assignedUser = lawyers.find(l => l.id === updates.assignTo)?.name || updates.assignTo || 'Unassigned'
+    const { data, error } = await supabase.from('handoffs').update({
+      task: updates.title,
+      to_name: assignedUser,
+      status: updates.status?.toLowerCase() || 'pending',
+      checklist: updates.checklist || [],
+    }).eq('id', taskId).select().single()
+    if (!error && data) {
+      setHandoffs(prev => prev.map(h => h.id === taskId ? data : h))
+    }
+  }, [lawyers])
+
   // ── Shape DB snake_case → UI camelCase ────────────────────────────────────
   const shapedMatters = matters.map(m => ({
     ...m, updated: m.updated_at, caseNumber: m.case_number,
@@ -285,7 +298,7 @@ export const AppProvider = ({ children }) => {
       // Matter CRUD
       addMatter, updateMatter, deleteMatter, archiveMatter: deleteMatter, assignMatter,
       // Handoffs
-      addTask, passTheBaton, updateTaskChecklist, deleteTask,
+      addTask, passTheBaton, updateTaskChecklist, deleteTask, updateTask,
       // Legacy no-op (login now handled via Supabase Auth)
       loginUser: () => {},
     }}>

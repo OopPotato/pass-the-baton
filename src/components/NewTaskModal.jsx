@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react"
 import { useForm, Controller } from "react-hook-form"
-import { format } from "date-fns"
-import { Calendar as CalendarIcon, Loader2, Plus, X, ListTodo } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, Plus, X, Pencil } from "lucide-react"
 
 import {
   Dialog,
@@ -22,10 +21,14 @@ import {
 import { useAppContext } from "../contexts/AppContext"
 import { cn } from "../lib/utils"
 
-export default function NewTaskModal({ open, onOpenChange, defaultMatter }) {
-  const { matters, users, addTask } = useAppContext()
+const emptyItem = () => ({ id: Date.now().toString() + Math.random(), text: "", completed: false })
+
+// Accepts optional `initialTask` for edit mode
+export default function NewTaskModal({ open, onOpenChange, defaultMatter, initialTask }) {
+  const { matters, users, addTask, updateTask } = useAppContext()
+  const isEditMode = !!initialTask
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [checklist, setChecklist] = useState([])
+  const [checklist, setChecklist] = useState([emptyItem()])
 
   const {
     register,
@@ -41,153 +44,160 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter }) {
       status: "Pending",
       dueDate: "",
       assignTo: "",
-      description: "",
     },
   })
 
-  const addChecklistItem = () => setChecklist([...checklist, { id: Date.now().toString(), text: "", completed: false }])
-  const updateChecklistItem = (id, text) => setChecklist(checklist.map(c => c.id === id ? { ...c, text } : c))
-  const removeChecklistItem = (id) => setChecklist(checklist.filter(c => c.id !== id))
-  
+  const addChecklistItem = () => setChecklist(prev => [...prev, emptyItem()])
+  const updateChecklistItem = (id, text) => setChecklist(prev => prev.map(c => c.id === id ? { ...c, text } : c))
+  const removeChecklistItem = (id) => setChecklist(prev => prev.filter(c => c.id !== id))
+
   const applyDefenceTemplate = () => {
     setChecklist([
-      { id: Date.now().toString() + '1', text: 'framework', completed: false },
-      { id: Date.now().toString() + '2', text: 'approve framework', completed: false },
-      { id: Date.now().toString() + '3', text: 'flesh out', completed: false },
-      { id: Date.now().toString() + '4', text: 'approve fleshed out ver', completed: false },
-      { id: Date.now().toString() + '5', text: 'file', completed: false },
-      { id: Date.now().toString() + '6', text: 'serve', completed: false },
-      { id: Date.now().toString() + '7', text: 'inform client', completed: false },
+      { id: "dt1", text: "Framework", completed: false },
+      { id: "dt2", text: "Approve framework", completed: false },
+      { id: "dt3", text: "Flesh out", completed: false },
+      { id: "dt4", text: "Approve fleshed out version", completed: false },
+      { id: "dt5", text: "File", completed: false },
+      { id: "dt6", text: "Serve", completed: false },
+      { id: "dt7", text: "Inform client", completed: false },
     ])
   }
 
-  const onSubmit = async (data) => {
-    setIsSubmitting(true)
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 600))
-    
-    addTask({
-      title: data.title,
-      matter: data.matter,
-      priority: data.priority,
-      status: data.status,
-      dueDate: data.dueDate,
-      assignTo: data.assignTo,
-      description: data.description,
-      checklist: checklist.filter(c => c.text.trim() !== ""),
-    })
-    
-    setIsSubmitting(false)
-    setChecklist([])
-    reset()
-    onOpenChange(false)
-  }
-
-  // Use effect to reset with defaultMatter when modal opens
+  // Populate form when modal opens
   useEffect(() => {
     if (open) {
-      reset({
-        title: "",
-        matter: defaultMatter || "",
-        priority: "Medium",
-        status: "Pending",
-        dueDate: "",
-        assignTo: "",
-        description: "",
-      })
-      setChecklist([])
+      if (isEditMode) {
+        // Find the user ID from lawyers for assignTo
+        reset({
+          title: initialTask.task || initialTask.title || "",
+          matter: defaultMatter || "",
+          priority: "Medium",
+          status: initialTask.status || "Pending",
+          dueDate: "",
+          assignTo: initialTask.to || "",
+        })
+        setChecklist(initialTask.checklist?.length > 0 ? initialTask.checklist : [emptyItem()])
+      } else {
+        reset({
+          title: "",
+          matter: defaultMatter || "",
+          priority: "Medium",
+          status: "Pending",
+          dueDate: "",
+          assignTo: "",
+        })
+        setChecklist([emptyItem()])
+      }
     }
-  }, [open, defaultMatter, reset])
+  }, [open, defaultMatter, isEditMode, initialTask, reset])
 
-  // Handle open state change (reset form if closed)
   const handleOpenChange = (isOpen) => {
     if (!isOpen) {
-      reset({
-        title: "",
-        matter: "",
-        priority: "Medium",
-        status: "Pending",
-        dueDate: "",
-        assignTo: "",
-        description: "",
-      })
-      setChecklist([])
+      reset()
+      setChecklist([emptyItem()])
     }
     onOpenChange(isOpen)
   }
 
+  const onSubmit = async (data) => {
+    setIsSubmitting(true)
+    const filledChecklist = checklist.filter(c => c.text.trim() !== "")
+
+    if (isEditMode) {
+      await updateTask(initialTask.id, {
+        title: data.title,
+        assignTo: data.assignTo,
+        status: data.status,
+        checklist: filledChecklist,
+      })
+    } else {
+      await new Promise(resolve => setTimeout(resolve, 400))
+      addTask({
+        title: data.title,
+        matter: data.matter,
+        priority: data.priority,
+        status: data.status,
+        dueDate: data.dueDate,
+        assignTo: data.assignTo,
+        checklist: filledChecklist,
+      })
+    }
+
+    setIsSubmitting(false)
+    handleOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden bg-card">
+      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden bg-card">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col max-h-[90vh]">
-          
-          <div className="px-6 pt-6 pb-4">
+
+          <div className="px-6 pt-6 pb-4 border-b">
             <DialogHeader>
-              <DialogTitle className="text-xl">New Task</DialogTitle>
+              <DialogTitle className="text-xl flex items-center gap-2">
+                {isEditMode ? <><Pencil className="h-5 w-5 text-slate-500" /> Edit Task</> : "New Task"}
+              </DialogTitle>
               <DialogDescription>
-                Create a task and assign initial ownership.
+                {isEditMode ? "Update task details and checklist." : "Create a task and assign initial ownership."}
               </DialogDescription>
             </DialogHeader>
           </div>
 
-          <div className="px-6 py-4 overflow-y-auto flex-1 space-y-5 flex flex-col">
+          <div className="px-6 py-4 overflow-y-auto flex-1 space-y-4">
+
             {/* Task Title */}
             <div className="space-y-1.5">
               <label htmlFor="title" className="text-sm font-semibold text-foreground">
-                Task Title *
+                Task Name *
               </label>
               <Input
                 id="title"
                 placeholder="e.g. Draft Affidavit"
-                {...register("title", { required: "Task title is required" })}
+                {...register("title", { required: "Task name is required" })}
                 className={errors.title ? "border-destructive focus-visible:ring-destructive" : ""}
               />
               {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
             </div>
 
-            {/* Legal Matter */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">Legal Matter *</label>
-              <Controller
-                control={control}
-                name="matter"
-                rules={{ required: "Matter must be selected" }}
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <SelectTrigger className={errors.matter ? "border-destructive focus:ring-destructive" : ""}>
-                      <SelectValue placeholder="Select matter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {matters.map((matter) => (
-                        <SelectItem key={matter.id} value={matter.id}>
-                          {matter.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.matter && <p className="text-xs text-destructive">{errors.matter.message}</p>}
-            </div>
-
-            {/* Priority & Status */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Legal Matter — only in create mode */}
+            {!isEditMode && (
               <div className="space-y-1.5">
-                <label className="text-sm font-semibold text-foreground">Priority</label>
+                <label className="text-sm font-semibold text-foreground">Legal Matter *</label>
                 <Controller
                   control={control}
-                  name="priority"
+                  name="matter"
+                  rules={{ required: "Matter must be selected" }}
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Priority" />
+                      <SelectTrigger className={errors.matter ? "border-destructive focus:ring-destructive" : ""}>
+                        <SelectValue placeholder="Select matter" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Low">Low</SelectItem>
-                        <SelectItem value="Medium">Medium</SelectItem>
-                        <SelectItem value="High">High</SelectItem>
-                        <SelectItem value="Urgent">Urgent</SelectItem>
+                        {matters.map((matter) => (
+                          <SelectItem key={matter.id} value={matter.id}>{matter.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.matter && <p className="text-xs text-destructive">{errors.matter.message}</p>}
+              </div>
+            )}
+
+            {/* Assign To + Status */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-foreground">Assign To</label>
+                <Controller
+                  control={control}
+                  name="assignTo"
+                  render={({ field }) => (
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <SelectTrigger><SelectValue placeholder="Select owner" /></SelectTrigger>
+                      <SelectContent>
+                        {users.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   )}
@@ -200,9 +210,7 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter }) {
                   name="status"
                   render={({ field }) => (
                     <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Status" />
-                      </SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="In Progress">In Progress</SelectItem>
@@ -215,104 +223,67 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter }) {
               </div>
             </div>
 
-            {/* Due Date */}
-            <div className="space-y-1.5">
-              <label htmlFor="dueDate" className="text-sm font-semibold text-foreground">
-                Due Date
-              </label>
-              <div className="relative">
-                <Input
-                  id="dueDate"
-                  type="date"
-                  className="pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
-                  {...register("dueDate")}
-                />
-                <CalendarIcon className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground pointer-events-none" />
+            {/* Due Date — only in create mode */}
+            {!isEditMode && (
+              <div className="space-y-1.5">
+                <label htmlFor="dueDate" className="text-sm font-semibold text-foreground">Due Date</label>
+                <div className="relative">
+                  <Input
+                    id="dueDate"
+                    type="date"
+                    className="pr-10 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                    {...register("dueDate")}
+                  />
+                  <CalendarIcon className="absolute right-3 top-2.5 h-5 w-5 text-muted-foreground pointer-events-none" />
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Assign To */}
-            <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-foreground">Assign To</label>
-              <Controller
-                control={control}
-                name="assignTo"
-                render={({ field }) => (
-                  <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select owner" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </div>
-
-            {/* Description */}
-            <div className="space-y-1.5 pb-2">
-              <label htmlFor="description" className="text-sm font-semibold text-foreground">
-                Description
-              </label>
-              <textarea
-                id="description"
-                rows={3}
-                placeholder="Task details..."
-                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 resize-none"
-                {...register("description")}
-              />
-            </div>
-
-            {/* Checklist */}
-            <div className="space-y-3 pt-4 pb-2 border-t border-slate-100">
+            {/* ── Checklist — primary content ── */}
+            <div className="pt-3 border-t border-slate-100 space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <ListTodo className="h-4 w-4 text-slate-500" />
-                  Task Checklist
-                </label>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
+                <p className="text-sm font-semibold text-foreground">Checklist Steps</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
                   className="h-7 text-xs px-3 bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200"
                   onClick={applyDefenceTemplate}
                 >
                   Defence Template
                 </Button>
               </div>
-              
-              {checklist.length > 0 && (
-                <div className="space-y-2.5">
-                  {checklist.map((item, index) => (
-                    <div key={item.id} className="flex items-start gap-2">
-                      <div className="mt-1 h-5 w-5 rounded border border-slate-300 bg-slate-50 flex items-center justify-center shrink-0">
-                        <span className="text-[10px] text-slate-400">{index + 1}</span>
-                      </div>
-                      <Input
-                        value={item.text}
-                        onChange={(e) => updateChecklistItem(item.id, e.target.value)}
-                        placeholder="Checklist item text"
-                        className="h-8 text-sm flex-1 font-medium bg-white"
-                      />
+
+              <div className="space-y-2">
+                {checklist.map((item, index) => (
+                  <div key={item.id} className="flex items-center gap-2">
+                    <div className="h-5 w-5 rounded border border-slate-300 bg-slate-50 flex items-center justify-center shrink-0 text-[10px] text-slate-400 font-medium">
+                      {index + 1}
+                    </div>
+                    <Input
+                      value={item.text}
+                      onChange={(e) => updateChecklistItem(item.id, e.target.value)}
+                      placeholder={`Step ${index + 1}`}
+                      className="h-8 text-sm flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); addChecklistItem() }
+                      }}
+                    />
+                    {checklist.length > 1 && (
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 shrink-0"
+                        className="h-8 w-8 text-slate-300 hover:text-red-500 hover:bg-red-50 shrink-0"
                         onClick={() => removeChecklistItem(item.id)}
                       >
                         <X className="h-4 w-4" />
                       </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
+                    )}
+                  </div>
+                ))}
+              </div>
+
               <Button
                 type="button"
                 variant="outline"
@@ -321,23 +292,18 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter }) {
                 onClick={addChecklistItem}
               >
                 <Plus className="h-4 w-4 mr-1.5" />
-                Add Checklist Item
+                Add Step
               </Button>
             </div>
 
           </div>
 
           <div className="px-6 py-4 flex items-center justify-end gap-3 border-t bg-muted/20">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => handleOpenChange(false)}
-              disabled={isSubmitting}
-            >
+            <Button type="button" variant="outline" onClick={() => handleOpenChange(false)} disabled={isSubmitting}>
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting} className="min-w-[110px]">
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create Task"}
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : isEditMode ? "Save Changes" : "Create Task"}
             </Button>
           </div>
 

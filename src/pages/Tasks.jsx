@@ -2,13 +2,13 @@ import React, { useState, useMemo } from "react"
 import { useAppContext } from "../contexts/AppContext"
 import { Badge } from "../components/ui/badge"
 import { Button } from "../components/ui/button"
-import { Briefcase, ListTodo, Plus, ChevronDown, CheckCircle2, Circle, Calendar, Trash2 } from "lucide-react"
+import { Briefcase, ListTodo, Plus, ChevronDown, CheckCircle2, Circle, Calendar, Trash2, Pencil } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { cn } from "../lib/utils"
 import NewTaskModal from "../components/NewTaskModal"
 
 // ── Individual task row with inline expandable checklist ──────────────────────
-function TaskRow({ task }) {
+function TaskRow({ task, onEdit }) {
   const { updateTaskChecklist, deleteTask } = useAppContext()
   const [checklist, setChecklist] = useState(task.checklist || [])
   const [isExpanded, setIsExpanded] = useState(false)
@@ -76,11 +76,20 @@ function TaskRow({ task }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400">
             <Calendar className="h-3 w-3" />
             {task.date || formatDistanceToNow(new Date(task.created_at || new Date()), { addSuffix: true })}
           </div>
+
+          {/* Edit button */}
+          <button
+            onClick={e => { e.stopPropagation(); onEdit(task) }}
+            title="Edit task"
+            className="flex items-center text-xs px-2 py-1 rounded-md border transition-all duration-200 bg-transparent border-transparent text-slate-300 hover:text-slate-600 hover:border-slate-200 hover:bg-slate-50"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
 
           {/* Delete button — two-click confirm */}
           <button
@@ -149,6 +158,7 @@ export default function Tasks() {
 
   const [activeMatterId, setActiveMatterId] = useState(null)
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
+  const [editingTask, setEditingTask] = useState(null)
 
   // Group handoffs by matter
   const mattersWithTasks = useMemo(() => {
@@ -249,7 +259,7 @@ export default function Tasks() {
                     ) : (
                       <div className="space-y-2">
                         {matter.tasks.map(task => (
-                          <TaskRow key={task.id} task={task} />
+                          <TaskRow key={task.id} task={task} onEdit={t => setEditingTask(t)} />
                         ))}
                       </div>
                     )}
@@ -269,6 +279,13 @@ export default function Tasks() {
           if (!open) setActiveMatterId(null)
         }}
         defaultMatter={activeMatterId}
+      />
+
+      {/* Edit Task Modal */}
+      <NewTaskModal
+        open={!!editingTask}
+        onOpenChange={(open) => { if (!open) setEditingTask(null) }}
+        initialTask={editingTask}
       />
     </div>
   )
