@@ -8,7 +8,8 @@ import {
 } from "./ui/dialog"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
-import { User, Building2, AlertCircle, FileText, Clock } from "lucide-react"
+import { User, Building2, AlertCircle, FileText, Clock, ListTodo } from "lucide-react"
+import { useAppContext } from "../contexts/AppContext"
 
 const getStatusVariant = (status) => {
   switch (status?.toLowerCase()) {
@@ -50,11 +51,14 @@ function DetailRow({ icon: Icon, label, value, badge, badgeVariant }) {
 }
 
 export default function ViewCaseModal({ open, onOpenChange, matter, onPassBaton, onEdit }) {
+  const { handoffs } = useAppContext()
   if (!matter) return null
 
   const updatedAgo = matter.updated
     ? formatDistanceToNow(new Date(matter.updated), { addSuffix: true })
     : "Unknown"
+
+  const matterTasks = handoffs.filter(h => h.matter === matter.name || h.matter_name === matter.name)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -100,6 +104,29 @@ export default function ViewCaseModal({ open, onOpenChange, matter, onPassBaton,
           <DetailRow icon={Clock} label="Last Updated" value={updatedAgo} />
           {matter.description && (
             <DetailRow icon={FileText} label="Description" value={matter.description} />
+          )}
+
+          {/* Tasks List */}
+          {matterTasks.length > 0 && (
+            <div className="flex items-start gap-3 py-3 border-b border-slate-100 last:border-0">
+              <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5">
+                <ListTodo className="h-4 w-4 text-indigo-500" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-slate-400 font-medium uppercase tracking-wide mb-1.5">Linked Tasks</p>
+                <div className="space-y-1.5">
+                  {matterTasks.map(task => (
+                    <div key={task.id} className="bg-slate-50 border border-slate-100 rounded-md p-2 text-sm flex flex-col gap-0.5">
+                      <p className="font-medium text-slate-800 leading-snug">{task.task || task.title}</p>
+                      <div className="flex items-center justify-between text-xs text-slate-500 mt-1">
+                        <span>Owner: <span className="font-medium text-slate-600">{task.to}</span></span>
+                        <Badge variant="outline" className="text-[10px] h-4 py-0 font-normal">{task.status}</Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
         </div>
 

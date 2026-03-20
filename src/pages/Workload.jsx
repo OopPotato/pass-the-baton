@@ -116,15 +116,18 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
                   </span>
                 </div>
 
-                {/* Assigned Tasks */}
-                {m.assignedTasks && m.assignedTasks.length > 0 && (
+                {/* All Tasks for the Matter */}
+                {m.allTasks && m.allTasks.length > 0 && (
                   <div className="pt-2 border-t border-slate-100">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">My Tasks</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tasks</p>
                     <div className="space-y-1.5">
-                      {m.assignedTasks.map(task => (
+                      {m.allTasks.map(task => (
                         <div key={task.id} className="flex items-start gap-2 bg-slate-50 p-2 rounded-md border border-slate-100">
                            <div className="h-4 w-4 rounded-full border border-slate-300 bg-white shadow-sm shrink-0 mt-0.5" />
-                           <p className="text-xs text-slate-700 leading-snug">{task.task || task.title}</p>
+                           <div className="flex-1 min-w-0">
+                             <p className="text-xs text-slate-700 leading-snug">{task.task || task.title}</p>
+                             <p className="text-[10px] text-slate-500 mt-0.5 font-medium">Owner: {task.to}</p>
+                           </div>
                         </div>
                       ))}
                     </div>
@@ -158,7 +161,7 @@ function MatterStack({ matters, onEdit, onPassBaton }) {
 }
 
 export default function Workload() {
-  const { matters, lawyers } = useAppContext()
+  const { matters, lawyers, handoffs } = useAppContext()
 
   const [batonMatter, setBatonMatter] = useState(null)
   const [editMatter, setEditMatter] = useState(null)
@@ -175,7 +178,10 @@ export default function Workload() {
       id: "unassigned",
       name: "Unassigned",
       initial: "?",
-      matters: matters.filter(m => (!m.lead || m.lead === "Unassigned") && !handoffs.some(h => h.matter === m.name && (!h.to || h.to === 'Unassigned'))),
+      matters: matters.filter(m => (!m.lead || m.lead === "Unassigned") && !handoffs.some(h => h.matter === m.name && (!h.to || h.to === 'Unassigned'))).map(m => ({
+        ...m,
+        allTasks: handoffs.filter(h => h.matter === m.name || h.matter_name === m.name)
+      })),
     },
     ...lawyers.map(u => ({
       id: u.id,
@@ -186,7 +192,7 @@ export default function Workload() {
         handoffs.some(h => h.to === u.name && (h.matter === m.name || h.matter_name === m.name))
       ).map(m => ({
         ...m,
-        assignedTasks: handoffs.filter(h => h.to === u.name && (h.matter === m.name || h.matter_name === m.name))
+        allTasks: handoffs.filter(h => h.matter === m.name || h.matter_name === m.name)
       })),
     })),
   ]

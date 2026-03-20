@@ -44,7 +44,7 @@ const getStatusBadge = (status) => {
 }
 
 export default function Matters() {
-  const { matters, users, archiveMatter } = useAppContext()
+  const { matters, users, handoffs, archiveMatter } = useAppContext()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [lawyerFilter, setLawyerFilter] = useState("all")
@@ -195,8 +195,19 @@ export default function Matters() {
               ) : (
                 paginatedMatters.map((matter) => (
                   <TableRow key={matter.id} className="border-slate-50 hover:bg-slate-50/50 transition-colors">
-                    <TableCell className="font-medium text-slate-900">{matter.name}</TableCell>
-                    <TableCell>
+                    <TableCell className="font-medium text-slate-900 align-top py-4">
+                      {matter.name}
+                      {/* Render assigned tasks underneath */}
+                      <div className="mt-2 space-y-1.5 pl-1 pr-4">
+                        {handoffs.filter(h => h.matter === matter.name || h.matter_name === matter.name).map(task => (
+                          <div key={task.id} className="text-xs text-slate-500 flex items-start gap-1.5 bg-slate-50 p-1.5 rounded border border-slate-100">
+                             <div className="h-3 w-3 rounded-full border border-slate-300 bg-white shadow-sm shrink-0" />
+                             <span className="leading-tight">{task.task || task.title} <span className="font-medium text-slate-400">({task.to})</span></span>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top py-4">
                       <Badge variant={getStatusBadge(matter.status)} className="font-medium shadow-sm">
                         {matter.status}
                       </Badge>
