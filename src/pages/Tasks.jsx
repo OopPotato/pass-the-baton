@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react"
 import { useAppContext } from "../contexts/AppContext"
 import { Button } from "../components/ui/button"
-import { Briefcase, ListTodo, Plus, CheckCircle2, Circle, Trash2, Pencil } from "lucide-react"
+import { Briefcase, ListTodo, Plus, CheckCircle2, Circle, Trash2, Pencil, Calendar } from "lucide-react"
 import { cn } from "../lib/utils"
+import { formatDistanceToNow, isPast, differenceInDays, parseISO } from "date-fns"
 import NewTaskModal from "../components/NewTaskModal"
 
 // ── Single checkable task item ─────────────────────────────────────────────
@@ -42,7 +43,7 @@ function TaskItem({ task, onEdit }) {
         }
       </button>
 
-      {/* Task label + assignee */}
+      {/* Task label + assignee + due date */}
       <div className="flex-1 min-w-0">
         <p className={cn(
           "text-sm font-medium leading-snug",
@@ -50,9 +51,33 @@ function TaskItem({ task, onEdit }) {
         )}>
           {task.task || task.title}
         </p>
-        {task.to && task.to !== "Unassigned" && (
-          <p className="text-[11px] text-slate-400 mt-0.5">{task.to}</p>
-        )}
+        <div className="flex items-center gap-2 mt-0.5">
+          {task.to && task.to !== "Unassigned" && (
+            <p className="text-[11px] text-slate-400">{task.to}</p>
+          )}
+          {task.date && !isDone && (() => {
+            try {
+              const due = parseISO(task.date)
+              const overdue = isPast(due)
+              const soonish = !overdue && differenceInDays(due, new Date()) <= 3
+              return (
+                <span className={cn(
+                  "flex items-center gap-0.5 text-[11px] font-medium",
+                  overdue ? "text-red-500" : soonish ? "text-amber-500" : "text-slate-400"
+                )}>
+                  <Calendar className="h-3 w-3" />
+                  {overdue ? "Overdue · " : ""}{formatDistanceToNow(due, { addSuffix: true })}
+                </span>
+              )
+            } catch { return null }
+          })()}
+          {task.date && isDone && (
+            <span className="flex items-center gap-0.5 text-[11px] text-green-600">
+              <Calendar className="h-3 w-3" />
+              {task.date}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Action buttons — visible on hover */}
@@ -91,9 +116,14 @@ export default function Tasks() {
 
   const mattersWithTasks = useMemo(() => {
     return matters.map(matter => {
-      const tasks = handoffs.filter(h =>
-        h.matter_name === matter.name || h.matter === matter.name || h.matter_id === matter.id
-      ).sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0))
+      const tasks = handoffs
+        .filter(h => h.matter_name === matter.name || h.matter === matter.name || h.matter_id === matter.id)
+        .sort((a, b) => {
+          // Closest due date first; undated tasks go to the end
+          const aDate = a.date ? new Date(a.date).getTime() : Infinity
+          const bDate = b.date ? new Date(b.date).getTime() : Infinity
+          return aDate - bDate
+        })
       return { ...matter, tasks }
     }).sort((a, b) => new Date(b.updated) - new Date(a.updated))
   }, [matters, handoffs])
