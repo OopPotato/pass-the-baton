@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from "react"
 import { formatDistanceToNow, parseISO } from "date-fns"
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Button } from "../components/ui/button"
 import { Badge } from "../components/ui/badge"
 import { 
-  Briefcase, Users, RefreshCw, AlertCircle, Plus, 
+  Briefcase, Users, RefreshCw, AlertTriangle, Plus, 
   ChevronRight, ChevronDown, CheckCircle2, ArrowRight,
-  Folder, ListTodo, Calendar as CalendarIcon, ArrowRightLeft 
+  Folder, ListTodo, Calendar as CalendarIcon, ArrowRightLeft,
+  Search
 } from "lucide-react"
 import { useAppContext } from "../contexts/AppContext"
 import NewMatterModal from "../components/NewMatterModal"
@@ -25,6 +26,9 @@ export default function Dashboard() {
   const [selectedTask, setSelectedTask] = useState(null)
   const [batonTask, setBatonTask] = useState(null)
   
+  // QoL Feature: Search filter for matters
+  const [searchQuery, setSearchQuery] = useState("")
+  
   // Modal states
   const [isMatterOpen, setIsMatterOpen] = useState(false)
   const [isTaskOpen, setIsTaskOpen] = useState(false)
@@ -34,7 +38,6 @@ export default function Dashboard() {
   const [expandedMatters, setExpandedMatters] = useState([])
 
   const pendingCount = handoffs.filter(h => h.status?.toLowerCase() === 'pending').length
-  const completedCount = handoffs.filter(h => h.status?.toLowerCase() === 'completed').length
   const urgentCount = handoffs.filter(h => h.status?.toLowerCase() === 'urgent').length
 
   const toggleMatter = (id) => {
@@ -49,6 +52,10 @@ export default function Dashboard() {
     }).sort((a, b) => new Date(b.updated) - new Date(a.updated))
   }, [matters, handoffs])
 
+  const filteredMatters = mattersWithTasks.filter(m => 
+    m.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   const tabs = [
     { id: "By Matter", label: "By Matter", icon: Folder },
     { id: "By Task", label: "By Task", icon: ListTodo },
@@ -58,9 +65,9 @@ export default function Dashboard() {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 w-full">
+    <div className="flex flex-col min-h-screen bg-slate-50 w-full font-sans">
       {/* ── Base44 Single-Row Global Navbar ── */}
-      <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b border-slate-200 bg-white z-20 shadow-sm w-full top-0">
+      <header className="h-16 flex-shrink-0 flex items-center justify-between px-6 border-b border-slate-200 bg-white z-20 shadow-sm w-full sticky top-0">
         
         {/* Left: Brand / Logo */}
         <div className="flex items-center gap-3 min-w-[200px]">
@@ -117,52 +124,103 @@ export default function Dashboard() {
       {/* ── Main Dashboard Content ── */}
       <div className="p-8 max-w-[1400px] mx-auto space-y-8 w-full flex-1">
         
+        {/* ── CONSTANT TOP KPI CARDS ── */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card 
+            onClick={() => setActiveTab("By Matter")}
+            className={cn(
+              "shadow-sm border-slate-200 cursor-pointer transition-colors hover:border-slate-300",
+              activeTab === "By Matter" ? "ring-2 ring-[#1e293b]" : ""
+            )}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                <Briefcase className="h-5 w-5 text-[#1e293b]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-[#1e293b] leading-none mb-1">{matters.length}</span>
+                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase leading-none">Active Matters</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            onClick={() => setActiveTab("By Task")}
+            className={cn(
+              "shadow-sm border-slate-200 cursor-pointer transition-colors hover:border-slate-300",
+              activeTab === "By Task" ? "ring-2 ring-[#1e293b]" : ""
+            )}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                <Users className="h-5 w-5 text-[#1e293b]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-[#1e293b] leading-none mb-1">{pendingCount}</span>
+                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase leading-none">Active Tasks</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            onClick={() => setActiveTab("Handoffs")}
+            className={cn(
+              "shadow-sm border-slate-200 cursor-pointer transition-colors hover:border-slate-300",
+              activeTab === "Handoffs" ? "ring-2 ring-[#1e293b]" : ""
+            )}
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                <ArrowRightLeft className="h-5 w-5 text-[#1e293b]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-[#1e293b] leading-none mb-1">{handoffs.length}</span>
+                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase leading-none">Total Handoffs</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card 
+            onClick={() => setActiveTab("By Task")}
+            className="shadow-sm border-slate-200 cursor-pointer transition-colors hover:border-slate-300"
+          >
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="h-5 w-5 text-[#1e293b]" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-bold text-[#1e293b] leading-none mb-1">{urgentCount}</span>
+                <span className="text-[10px] font-semibold text-slate-500 tracking-wider uppercase leading-none">Urgent</span>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+
         {/* ── BY MATTER VIEW (DEFAULT) ── */}
         {activeTab === "By Matter" && (
-          <div className="space-y-8">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="shadow-sm border-slate-200">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm border-0 font-semibold text-slate-600">Active Matters</CardTitle>
-                  <Briefcase className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-900">{matters.length}</div>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm border-slate-200">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-semibold text-slate-600">Active Tasks</CardTitle>
-                  <Users className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{pendingCount}</div>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm border-slate-200">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-semibold text-slate-600">Total Handoffs</CardTitle>
-                  <RefreshCw className="h-4 w-4 text-slate-400" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-slate-700">{handoffs.length}</div>
-                </CardContent>
-              </Card>
-              <Card className="shadow-sm border-slate-200 bg-amber-50/30">
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-semibold text-amber-700">Urgent</CardTitle>
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-amber-600">{urgentCount}</div>
-                </CardContent>
-              </Card>
+          <div className="space-y-4 pt-4">
+            
+            {/* Added QoL Feature: Search */}
+            <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl border border-slate-200 shadow-sm transition-colors focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400 mx-auto">
+              <Search className="h-5 w-5 text-slate-400 shrink-0" />
+              <input 
+                type="text" 
+                placeholder="Search legal matters..." 
+                className="bg-transparent border-none outline-none w-full text-sm text-slate-900 placeholder:text-slate-400 font-medium"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
             </div>
 
             <div className="space-y-4">
-              {mattersWithTasks.length === 0 ? (
-                 <p className="text-slate-500 text-center py-10 italic">No matters found. Create one to get started.</p>
-              ) : mattersWithTasks.map((matter) => {
+              {filteredMatters.length === 0 ? (
+                 <div className="bg-white rounded-xl border border-slate-200 border-dashed p-10 flex flex-col items-center justify-center text-center">
+                   <Folder className="h-10 w-10 text-slate-300 mb-3" />
+                   <p className="text-slate-500 font-medium">No matters found.</p>
+                   <p className="text-sm text-slate-400 mt-1">Try adjusting your search or create a new matter.</p>
+                 </div>
+              ) : filteredMatters.map((matter) => {
                 const isExpanded = expandedMatters.includes(matter.id)
                 const completed = matter.tasks.filter(t => t.status?.toLowerCase() === 'completed').length
                 
@@ -175,7 +233,7 @@ export default function Dashboard() {
                       <div className="flex items-center gap-3">
                         {isExpanded ? <ChevronDown className="h-5 w-5 text-slate-400" /> : <ChevronRight className="h-5 w-5 text-slate-400" />}
                         <h3 className="font-semibold text-slate-900 text-lg">{matter.name}</h3>
-                        <Badge variant="outline" className="text-xs ml-2 text-slate-500 tracking-wide font-normal">
+                        <Badge variant="outline" className="text-xs ml-2 text-slate-500 tracking-wide font-normal bg-slate-50">
                           {completed}/{matter.tasks.length} tasks completed
                         </Badge>
                       </div>
@@ -201,7 +259,9 @@ export default function Dashboard() {
                                    </div>
                                  </div>
                                  <div className="flex items-center gap-4 text-xs font-medium pl-8 sm:pl-0">
-                                    <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 uppercase">{task.status}</Badge>
+                                    <Badge variant="outline" className={cn("text-[10px] uppercase", task.status?.toLowerCase() === 'urgent' ? "bg-red-50 text-red-600 border-red-200" : "bg-slate-50 text-slate-500")}>
+                                      {task.status}
+                                    </Badge>
                                     <span className="text-slate-400 truncate max-w-[100px]">{task.to}</span>
                                     <span className="text-slate-400 w-20 text-right">{task.dueDate || "No Date"}</span>
                                     <Button size="sm" variant="ghost" className="h-7 text-xs bg-[#1e293b] text-white hover:bg-slate-800" onClick={() => setBatonTask(task)}>
@@ -226,7 +286,7 @@ export default function Dashboard() {
 
         {/* ── BY TASK VIEW ── */}
         {activeTab === "By Task" && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pt-4">
             {handoffs.length === 0 ? (
               <p className="col-span-full text-slate-500 text-center py-10 italic">No tasks active.</p>
             ) : (
@@ -245,11 +305,11 @@ export default function Dashboard() {
 
         {/* ── BY OWNER VIEW (WORKLOAD) ── */}
         {activeTab === "By Owner" && (
-          <div className="flex items-start gap-6 overflow-x-auto pb-6">
+          <div className="flex items-start gap-6 overflow-x-auto pb-6 pt-4">
             {users.map(u => {
               const userTasks = handoffs.filter(h => h.to === u.name && h.status?.toLowerCase() !== 'completed')
               return (
-                <div key={u.id} className="w-[320px] shrink-0 bg-slate-100/50 rounded-xl flex flex-col max-h-[75vh]">
+                <div key={u.id} className="w-[320px] shrink-0 bg-slate-100/50 rounded-xl flex flex-col max-h-[65vh]">
                   <div className="p-4 border-b border-slate-200">
                      <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
@@ -259,7 +319,7 @@ export default function Dashboard() {
                            <h3 className="font-semibold text-slate-800">{u.name}</h3>
                         </div>
                      </div>
-                     <p className="text-xs text-slate-500 font-medium ml-8">{userTasks.length} batons</p>
+                     <p className="text-xs text-slate-500 font-medium ml-8">{userTasks.length} pending batons</p>
                   </div>
                   <div className="p-3 space-y-3 overflow-y-auto flex-1">
                     {userTasks.length === 0 ? (
@@ -284,16 +344,18 @@ export default function Dashboard() {
 
         {/* ── CALENDAR VIEW ── */}
         {activeTab === "Calendar" && (
-          <CalendarView />
+          <div className="pt-4">
+            <CalendarView />
+          </div>
         )}
 
         {/* ── HANDOFFS TIMELINE VIEW ── */}
         {activeTab === "Handoffs" && (
-           <Card className="max-w-3xl shadow-sm border-slate-200">
-             <CardHeader>
-               <CardTitle>Recent Activity</CardTitle>
+           <Card className="max-w-3xl shadow-sm border-slate-200 mt-4">
+             <CardHeader className="bg-slate-50/50 border-b border-slate-100 pb-4">
+               <CardTitle className="text-lg">Recent Organization Activity</CardTitle>
              </CardHeader>
-             <CardContent>
+             <CardContent className="pt-6">
                 <div className="space-y-6">
                   {handoffs.length === 0 ? (
                     <p className="text-sm text-slate-500">No recent handoffs.</p>
@@ -307,14 +369,14 @@ export default function Dashboard() {
                            <div className="w-px h-full bg-slate-100 absolute top-8 group-last:hidden" />
                          </div>
                          <div className="pt-1.5 pb-6 text-sm">
-                            <p className="text-slate-900 font-medium">{item.task}</p>
+                            <p className="text-slate-900 font-bold">{item.task}</p>
                             <p className="text-slate-500 mb-2 truncate max-w-sm">{item.matter}</p>
-                            <div className="flex items-center gap-2 text-xs font-medium text-slate-600 bg-slate-100/50 w-fit px-2 py-1 rounded">
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 bg-slate-100/80 w-fit px-2.5 py-1.5 rounded-md border border-slate-200/60 shadow-sm mt-1">
                               <span>{item.from?.split('@')[0]}</span>
                               <ArrowRight className="h-3 w-3 text-slate-400" />
                               <span>{item.to}</span>
                             </div>
-                            <p className="text-[10px] text-slate-400 mt-2 font-medium uppercase tracking-wider">{item.date}</p>
+                            <p className="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-wider">{item.date}</p>
                          </div>
                       </div>
                     ))
@@ -325,6 +387,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* Modals */}
       <NewMatterModal open={isMatterOpen} onOpenChange={setIsMatterOpen} />
       <NewTaskModal open={isTaskOpen} onOpenChange={setIsTaskOpen} />
       <ManageOwnersModal open={isOwnersOpen} onOpenChange={setIsOwnersOpen} />
