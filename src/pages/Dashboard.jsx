@@ -198,7 +198,7 @@ export default function Dashboard() {
 
 
         {/* ── ANIMATED VIEW CONTAINER ── */}
-        <div key={activeTab} className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div key={activeTab} className="animate-fade-in">
           
           {/* ── BY MATTER VIEW (DEFAULT) ── */}
           {activeTab === "By Matter" && (
