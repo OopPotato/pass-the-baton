@@ -118,10 +118,24 @@ export default function NewTaskModal({ open, onOpenChange, defaultMatter, initia
                     <Select onValueChange={field.onChange} value={field.value}>
                       <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="in progress">In Progress</SelectItem>
-                        <SelectItem value="in review">In Review</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="In Progress">In Progress</SelectItem>
+                        <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Approve Flesh Out Ver">Approve Flesh Out Ver</SelectItem>
+                        <SelectItem value="Approve Framework">Approve Framework</SelectItem>
+                        <SelectItem value="Attend Court">Attend Court</SelectItem>
+                        <SelectItem value="Brainstorm">Brainstorm</SelectItem>
+                        <SelectItem value="Client's Approval">Client's Approval</SelectItem>
+                        <SelectItem value="Court Deadline">Court Deadline</SelectItem>
+                        <SelectItem value="Discussion">Discussion</SelectItem>
+                        <SelectItem value="Fair">Fair</SelectItem>
+                        <SelectItem value="File">File</SelectItem>
+                        <SelectItem value="Flesh Out">Flesh Out</SelectItem>
+                        <SelectItem value="Follow Up With Client">Follow Up With Client</SelectItem>
+                        <SelectItem value="Framework">Framework</SelectItem>
+                        <SelectItem value="Meeting">Meeting</SelectItem>
+                        <SelectItem value="Serve">Serve</SelectItem>
+                        <SelectItem value="Update Client">Update Client</SelectItem>
                       </SelectContent>
                     </Select>
                   )}

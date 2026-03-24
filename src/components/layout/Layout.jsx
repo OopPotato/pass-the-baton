@@ -16,8 +16,6 @@ import { useAppContext } from "../../contexts/AppContext"
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/" },
   { icon: Briefcase, label: "Matters", href: "/matters" },
-  { icon: ListTodo, label: "Tasks", href: "/tasks" },
-  { icon: Users, label: "Workload", href: "/handoffs" },
   { icon: Settings, label: "Settings", href: "/settings" },
 ]
 
