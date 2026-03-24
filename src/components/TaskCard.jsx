@@ -3,16 +3,7 @@ import { CheckCircle2, Circle, Clock, ArrowRight } from "lucide-react"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { formatDistanceToNow, isPast, parseISO } from "date-fns"
-import { cn } from "../lib/utils"
-
-const getStatusBadgeVariant = (status) => {
-  switch(status?.toLowerCase()) {
-    case 'completed': return 'success'
-    case 'urgent': return 'destructive'
-    case 'pending': return 'info'
-    default: return 'outline'
-  }
-}
+import { cn, getStatusStyles } from "../lib/utils"
 
 export default function TaskCard({ 
   task, 
@@ -57,8 +48,8 @@ export default function TaskCard({
         </div>
 
         {/* Status Pill */}
-        <div className="pl-8 mb-4">
-          <Badge variant={getStatusBadgeVariant(task.status)} className="text-[10px] px-1.5 py-0 h-4 uppercase tracking-wider">
+        <div className="pl-8 mb-4 mt-2">
+          <Badge variant="outline" className={cn(getStatusStyles(task.status), "text-[10px] px-2 py-0.5 h-auto uppercase tracking-wider font-bold mb-1")}>
             {task.status || 'Pending'}
           </Badge>
         </div>
